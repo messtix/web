@@ -1,25 +1,30 @@
 const WORD_CHAR = /[\p{L}\p{N}]/u;
+const NBSP_RE = new RegExp(' ', 'g');
+const NBSP_ENTITY_RE = /&nbsp;/gi;
 
 /**
- * Content pasted from Word (or similar) often carries literal <br> tags
- * at each original line-wrap position. Once rendered in a narrower
- * column those breaks land in the middle of words, cutting them in
- * half. A <br> that sits directly between two word characters (no
- * space, no punctuation) is almost certainly one of these paste
- * artifacts rather than an intentional line break, so it's replaced
- * with a single space.
+ * Content pasted from Word (or similar) can carry two kinds of paste
+ * artifacts that break normal line-wrapping:
  *
- * The adjacent content is frequently wrapped in an inline element
- * (e.g. a <span style="color:..."> from the rich text editor's color
- * or font-size formatting), not a bare text node, so this reads
- * textContent on whatever sibling is there rather than requiring a
- * literal Text node.
+ * 1. Non-breaking spaces (&nbsp; / U+00A0) used in place of regular
+ *    spaces between words. A non-breaking space blocks the browser
+ *    from wrapping the line there, so a whole run of nbsp-joined
+ *    words becomes one "unbreakable" token from the line-breaking
+ *    algorithm's point of view — forcing the browser to cut it
+ *    wherever it physically runs out of room, mid-word, regardless
+ *    of word length. This is the common case and is fixed by simply
+ *    turning those back into regular spaces.
+ *
+ * 2. Literal <br> tags at each original line-wrap position, which
+ *    can also land mid-word once rendered in a narrower column.
  */
 export default function cleanPostHtml(html) {
   if (!html) return html;
   if (typeof window === 'undefined' || !window.DOMParser) return html;
 
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const normalized = html.replace(NBSP_RE, ' ').replace(NBSP_ENTITY_RE, ' ');
+
+  const doc = new DOMParser().parseFromString(normalized, 'text/html');
   const breaks = doc.body.querySelectorAll('br');
 
   breaks.forEach((br) => {

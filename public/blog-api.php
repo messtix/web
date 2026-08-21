@@ -159,6 +159,14 @@ function sanitize_html($html) {
         return '';
     }
 
+    // Content pasted from Word often uses non-breaking spaces (&nbsp; /
+    // U+00A0) between every word. A non-breaking space blocks the browser
+    // from wrapping the line there, so a whole nbsp-joined run becomes one
+    // "unbreakable" token and gets cut wherever it runs out of room,
+    // mid-word, regardless of word length. Normalize back to real spaces.
+    $html = preg_replace('/&nbsp;/i', ' ', $html);
+    $html = str_replace("\xC2\xA0", ' ', $html);
+
     $allowedTags = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'a', 'span'];
     $allowedAttrs = [
         'a' => ['href', 'target', 'rel'],
