@@ -225,16 +225,30 @@ function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
   );
 }
 
+const ADMIN_PER_PAGE = 20;
+
 function Dashboard({ displayName, onDisplayNameChange }) {
   const [posts, setPosts] = useState(null);
   const [editing, setEditing] = useState(null); // null = list, {} = new, post = edit
   const [panel, setPanel] = useState(null); // null | 'password' | 'name'
+  const [page, setPage] = useState(1);
 
   function reload() {
     adminListPosts().then((res) => setPosts(res.posts));
   }
 
   useEffect(reload, []);
+
+  const totalPages = posts ? Math.max(1, Math.ceil(posts.length / ADMIN_PER_PAGE)) : 1;
+  const currentPage = Math.min(page, totalPages);
+  const pagePosts = posts
+    ? posts.slice((currentPage - 1) * ADMIN_PER_PAGE, currentPage * ADMIN_PER_PAGE)
+    : [];
+
+  function goToPage(p) {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   async function handleEdit(id) {
     const res = await adminGetPost(id);
@@ -304,25 +318,64 @@ function Dashboard({ displayName, onDisplayNameChange }) {
       )}
 
       {posts !== null && posts.length > 0 && (
-        <div className="admin-post-list">
-          {posts.map((p) => (
-            <div className="admin-post-row" key={p.id}>
-              <div>
-                <strong>{p.title}</strong>
-                <span className={`admin-status ${p.published ? 'is-published' : 'is-draft'}`}>
-                  {p.published ? 'Publicado' : 'Borrador'}
-                </span>
-                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>
-                  {p.date} · {p.category || 'Sin categoría'} · Autor: {p.author || '—'}
-                </p>
+        <>
+          <p style={{ marginTop: 32, marginBottom: 0, fontSize: '.85rem', color: 'var(--gray-text)' }}>
+            {posts.length} artículo{posts.length === 1 ? '' : 's'} en total
+          </p>
+          <div className="admin-post-list">
+            {pagePosts.map((p) => (
+              <div className="admin-post-row" key={p.id}>
+                <div>
+                  <strong>{p.title}</strong>
+                  <span className={`admin-status ${p.published ? 'is-published' : 'is-draft'}`}>
+                    {p.published ? 'Publicado' : 'Borrador'}
+                  </span>
+                  <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>
+                    {p.date} · {p.category || 'Sin categoría'} · Autor: {p.author || '—'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn-ghost" onClick={() => handleEdit(p.id)}>Editar</button>
+                  <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(p.id, p.title)}>Eliminar</button>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn-ghost" onClick={() => handleEdit(p.id)}>Editar</button>
-                <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(p.id, p.title)}>Eliminar</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <nav className="pagination" aria-label="Paginación de artículos">
+              <button
+                type="button"
+                className="pagination-arrow"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                aria-label="Página anterior"
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`pagination-page${p === currentPage ? ' is-active' : ''}`}
+                  onClick={() => goToPage(p)}
+                  aria-current={p === currentPage ? 'page' : undefined}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="pagination-arrow"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                aria-label="Página siguiente"
+              >
+                ›
+              </button>
+            </nav>
+          )}
+        </>
       )}
     </div>
   );
