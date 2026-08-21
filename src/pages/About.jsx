@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Lightbox from '../components/Lightbox';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 const skills = [
   'Arquitectura Web',
@@ -30,6 +31,7 @@ const events = [
 ];
 
 export default function About() {
+  useDocumentTitle('Sobre Mí | María Sánchez - Messtix');
   const [active, setActive] = useState(null);
 
   return (

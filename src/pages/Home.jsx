@@ -1,3 +1,5 @@
+import useDocumentTitle from '../hooks/useDocumentTitle';
+
 const specialties = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables.' },
   { num: '02', title: 'Automatización de Procesos', desc: 'Flujos de trabajo automatizados.' },
@@ -15,6 +17,8 @@ const problems = [
 ];
 
 export default function Home() {
+  useDocumentTitle('María Sánchez | Desarrollo Web, Automatización e IA');
+
   return (
     <>
       <section className="hero">

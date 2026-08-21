@@ -1,3 +1,5 @@
+import useDocumentTitle from '../hooks/useDocumentTitle';
+
 const services = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables, construidos a medida para tu negocio.' },
   { num: '02', title: 'Diseño UX', desc: 'Experiencias digitales claras, usables y centradas en tus clientes.' },
@@ -8,6 +10,8 @@ const services = [
 ];
 
 export default function Services() {
+  useDocumentTitle('Servicios | María Sánchez - Messtix');
+
   return (
     <>
       <section className="page-hero">

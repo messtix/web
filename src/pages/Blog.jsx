@@ -1,3 +1,5 @@
+import useDocumentTitle from '../hooks/useDocumentTitle';
+
 const posts = [
   {
     meta: 'Desarrollo Web',
@@ -32,6 +34,8 @@ const posts = [
 ];
 
 export default function Blog() {
+  useDocumentTitle('Blog | María Sánchez - Messtix');
+
   return (
     <>
       <section className="page-hero">

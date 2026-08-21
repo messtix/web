@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import SocialLinks from '../components/SocialLinks';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 export default function Contact() {
+  useDocumentTitle('Contacto | María Sánchez - Messtix');
   const [status, setStatus] = useState('idle'); // idle | sending | sent | error
 
   async function handleSubmit(e) {

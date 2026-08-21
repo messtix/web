@@ -1,3 +1,5 @@
+import useDocumentTitle from '../hooks/useDocumentTitle';
+
 const projects = [
   {
     cat: 'Desarrollo Web',
@@ -44,6 +46,8 @@ const projects = [
 ];
 
 export default function Portfolio() {
+  useDocumentTitle('Portafolio | María Sánchez - Messtix');
+
   return (
     <>
       <section className="page-hero">
