@@ -220,23 +220,28 @@ footer .social-links a:hover{color:var(--vino);}
 @media(max-width:860px){.grid-3,.grid-2{grid-template-columns:1fr;}}
 
 .card{
-  border:1px solid var(--gray-line);
+  border:1px solid var(--vino-dark);
   border-radius:var(--radius);
   padding:30px 26px;
-  background:var(--white);
-  transition:border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+  background:linear-gradient(155deg, var(--vino) 0%, var(--vino-dark) 100%);
+  transition:background .25s ease, border-color .25s ease, transform .25s ease, box-shadow .25s ease;
 }
 .card:hover{
+  background:var(--white);
   border-color:var(--vino);
   transform:translateY(-5px);
   box-shadow:0 18px 34px -20px rgba(20,18,18,.35);
 }
 .card .num{
-  font-family:var(--serif);color:var(--vino);
+  font-family:var(--serif);color:#f0c2cb;
   font-size:.85rem;font-weight:600;margin-bottom:14px;display:block;
+  transition:color .25s ease;
 }
-.card h3{font-size:1.15rem;margin-bottom:.35em;}
-.card p{margin:0;font-size:.94rem;}
+.card:hover .num{color:var(--vino);}
+.card h3{font-size:1.15rem;margin-bottom:.35em;color:var(--white);transition:color .25s ease;}
+.card:hover h3{color:var(--black);}
+.card p{margin:0;font-size:.94rem;color:#f1dee1;transition:color .25s ease;}
+.card:hover p{color:var(--gray-text);}
 
 /* Problem cards (dark variant strip) */
 .problem-card{
@@ -525,6 +530,27 @@ footer a:hover{color:var(--vino);}
 @media(max-width:600px){
   .section{padding:64px 0;}
   .cta-band{padding:40px 26px;flex-direction:column;align-items:flex-start;}
+}
+
+.back-to-top{
+  position:fixed;right:24px;bottom:24px;z-index:80;
+  width:48px;height:48px;border:none;border-radius:50%;
+  background:var(--vino);color:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:0 12px 28px -10px rgba(122,17,40,.55);
+  opacity:0;transform:translateY(12px) scale(.9);
+  pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease, background .2s ease;
+}
+.back-to-top.is-visible{
+  opacity:1;transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+.back-to-top:hover{background:var(--vino-dark);}
+.back-to-top svg{width:22px;height:22px;}
+@media(max-width:600px){
+  .back-to-top{right:16px;bottom:16px;width:44px;height:44px;}
 }
 
 .brand-logo{height:80px;width:auto;display:block;}
