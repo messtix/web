@@ -32,7 +32,7 @@ const events = [
 
 export default function About() {
   useDocumentTitle('Sobre Mí | María Sánchez - Messtix');
-  const [active, setActive] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(null);
 
   return (
     <>
@@ -105,12 +105,12 @@ export default function About() {
             Charlas y conferencias sobre desarrollo web, seguridad e inteligencia artificial.
           </p>
           <div className="gallery-grid" style={{ marginTop: 40 }}>
-            {events.map((event) => (
+            {events.map((event, index) => (
               <button
                 key={event.alt}
                 type="button"
                 className="gallery-item"
-                onClick={() => setActive(event)}
+                onClick={() => setActiveIndex(index)}
               >
                 <img
                   src={event.img}
@@ -129,7 +129,14 @@ export default function About() {
         </div>
       </section>
 
-      {active && <Lightbox item={active} onClose={() => setActive(null)} />}
+      {activeIndex !== null && (
+        <Lightbox
+          items={events}
+          index={activeIndex}
+          onClose={() => setActiveIndex(null)}
+          onNavigate={setActiveIndex}
+        />
+      )}
     </>
   );
 }
