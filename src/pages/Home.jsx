@@ -24,9 +24,10 @@ export default function Home() {
       <section className="hero">
         <div className="container">
           <div>
-            <span className="hero-badge">Ingeniera en Computación</span>
+            <span className="hero-badge">Consultora en Soluciones Digitales</span>
             <h1>
-              Desarrollo Web, <em>Automatización</em> e Inteligencia Artificial para Empresas
+              Desarrollo Web, <em>Automatización</em> e Inteligencia Artificial adaptado a tu
+              necesidad.
             </h1>
             <p className="lead">
               Ayudo a optimizar sitios web, automatizar procesos y desarrollar soluciones
