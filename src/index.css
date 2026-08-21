@@ -437,7 +437,7 @@ footer a:hover{color:var(--vino);}
   .cta-band{padding:40px 26px;flex-direction:column;align-items:flex-start;}
 }
 
-.brand-logo{height:40px;width:auto;display:block;}
-footer .brand-logo{height:34px;}
+.brand-logo{height:66px;width:auto;display:block;}
+footer .brand-logo{height:58px;}
 .hero .brand-logo,
-.page-hero .brand-logo{height:56px;}
+.page-hero .brand-logo{height:71px;}

@@ -2,10 +2,11 @@ export default function Logo({ variant = 'dark' }) {
   const rect = variant === 'light' ? '#ffffff' : '#141212';
   const accent = variant === 'light' ? '#c94a5f' : '#7a1128';
   const text = variant === 'light' ? '#ffffff' : '#141212';
+  const subtitle = variant === 'light' ? '#cfc8c6' : '#5b5555';
 
   return (
     <svg
-      viewBox="0 0 500 150"
+      viewBox="0 0 500 190"
       xmlns="http://www.w3.org/2000/svg"
       className="brand-logo"
       role="img"
@@ -26,6 +27,17 @@ export default function Logo({ variant = 'dark' }) {
         fill={text}
       >
         mess<tspan fill={accent}>tix</tspan>
+      </text>
+      <text
+        x="104"
+        y="128"
+        fontFamily="'Inter',-apple-system,'Segoe UI',sans-serif"
+        fontWeight="500"
+        fontSize="22"
+        letterSpacing=".04em"
+        fill={subtitle}
+      >
+        by María Sánchez
       </text>
     </svg>
   );
