@@ -105,6 +105,7 @@ export default function About() {
                   }}
                 />
                 <span className="gallery-item-fallback">{event.alt}</span>
+                <span className="gallery-item-caption">{event.alt}</span>
               </button>
             ))}
           </div>
