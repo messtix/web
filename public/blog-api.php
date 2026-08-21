@@ -62,6 +62,28 @@ function write_admin($admin) {
 }
 
 /**
+ * Self-bootstrapping account: data/admin.json is intentionally never
+ * shipped with the site build, so that re-uploading the static files
+ * (index.html, assets/, etc.) on top of an existing deployment can
+ * never clobber the real password/display name or the published
+ * posts sitting in data/. If admin.json is missing (fresh install),
+ * create it once with the default credentials.
+ */
+function ensure_admin_exists() {
+    if (file_exists(ADMIN_FILE)) {
+        return;
+    }
+    if (!is_dir(DATA_DIR)) {
+        @mkdir(DATA_DIR, 0755, true);
+    }
+    write_admin([
+        'username' => 'messtix',
+        'password_hash' => password_hash('Messtix-Blog-2026', PASSWORD_BCRYPT),
+        'display_name' => 'María Sánchez',
+    ]);
+}
+
+/**
  * Login attempt rate limiting: max 8 tries per 15 minutes per IP.
  * Fails open (allows the attempt) if the store can't be read/written.
  */
@@ -263,6 +285,8 @@ function unique_slug($base, $posts, $excludeId = null) {
     }
     return $slug;
 }
+
+ensure_admin_exists();
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');

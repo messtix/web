@@ -46,7 +46,7 @@ h1,h2,h3,h4{
   margin:0 0 .5em;
   letter-spacing:-.01em;
 }
-p{margin:0 0 1em;color:var(--gray-text);}
+p{margin:0 0 1em;color:var(--gray-text);text-align:justify;}
 .container{
   max-width:1140px;
   margin:0 auto;
@@ -348,21 +348,20 @@ footer .social-links a:hover{color:var(--vino);}
 .post-body{
   color:var(--black);font-size:1.02rem;
   max-width:100%;
-  overflow-wrap:anywhere;
-  word-break:break-word;
+  overflow-wrap:break-word;
 }
-.post-body p{color:var(--black);font-size:1.02rem;overflow-wrap:anywhere;word-break:break-word;}
-.post-body h2{font-size:1.5rem;margin-top:1.2em;overflow-wrap:anywhere;word-break:break-word;}
-.post-body h3{font-size:1.2rem;margin-top:1em;overflow-wrap:anywhere;word-break:break-word;}
+.post-body p{color:var(--black);font-size:1.02rem;}
+.post-body h2{font-size:1.5rem;margin-top:1.2em;}
+.post-body h3{font-size:1.2rem;margin-top:1em;}
 .post-body ul{margin:0 0 1em;padding-left:1.4em;color:var(--black);list-style:disc;}
 .post-body ol{margin:0 0 1em;padding-left:1.4em;color:var(--black);list-style:decimal;}
-.post-body li{margin-bottom:.4em;display:list-item;overflow-wrap:anywhere;word-break:break-word;}
+.post-body li{margin-bottom:.4em;display:list-item;}
 .post-body blockquote{
   margin:0 0 1em;padding:4px 0 4px 18px;
   border-left:3px solid var(--vino);
   color:var(--gray-text);font-style:italic;
 }
-.post-body a{color:var(--vino);text-decoration:underline;overflow-wrap:anywhere;word-break:break-word;}
+.post-body a{color:var(--vino);text-decoration:underline;}
 .post-body strong{font-weight:700;}
 
 /* Rich text editor (admin) */
