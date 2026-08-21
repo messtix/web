@@ -40,11 +40,26 @@ export default function About() {
         <div className="container">
           <div>
             <span className="eyebrow">Sobre Mí</span>
-            <h1>Ingeniera en Computación</h1>
+            <h1>Consultora en Soluciones Digitales</h1>
             <p className="section-lead">
-              Especializada en desarrollo web, automatización de procesos e integraciones
-              tecnológicas. Ayudo a empresas a optimizar sus sistemas digitales y crear
-              soluciones eficientes.
+              Ingeniera en Computación, con más de 10 años de experiencia en el área
+              tecnológica. Durante mi trayectoria he trabajado en la creación,
+              implementación y optimización de soluciones digitales para distintos
+              proyectos y necesidades.
+            </p>
+            <p className="section-lead">
+              Mi enfoque combina estrategia, tecnología y funcionalidad para desarrollar
+              soluciones prácticas que permitan optimizar procesos, mejorar experiencias y
+              aprovechar mejor las herramientas digitales disponibles.
+            </p>
+            <p className="section-lead">
+              También he participado en webinars, workshops, foros, meetups y conferencias
+              sobre tecnología e innovación, manteniéndome en constante aprendizaje y
+              actualización.
+            </p>
+            <p className="about-stack">
+              Desarrollo Web · WordPress · WooCommerce · UX · Automatización · IA ·
+              Integraciones · Soporte Web
             </p>
           </div>
           <div className="avatar-ring">
