@@ -5,6 +5,7 @@ import {
   login,
   logout,
   changePassword,
+  updateDisplayName,
   adminListPosts,
   adminGetPost,
   savePost,
@@ -12,17 +13,21 @@ import {
   uploadImage,
 } from '../api/blog';
 
-const emptyForm = {
-  id: '',
-  title: '',
-  excerpt: '',
-  content: '',
-  category: '',
-  cover_image: '',
-  published: false,
-};
+function emptyForm(defaultAuthor) {
+  return {
+    id: '',
+    title: '',
+    excerpt: '',
+    content: '',
+    category: '',
+    cover_image: '',
+    author: defaultAuthor || '',
+    published: false,
+  };
+}
 
 function LoginForm({ onLoggedIn }) {
+  const [username, setUsername] = useState('messtix');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,10 +37,14 @@ function LoginForm({ onLoggedIn }) {
     setLoading(true);
     setError('');
     try {
-      await login(password);
+      await login(username, password);
       onLoggedIn();
-    } catch {
-      setError('Contraseña incorrecta.');
+    } catch (err) {
+      setError(
+        err.message === 'rate_limited'
+          ? 'Demasiados intentos. Espera unos minutos.'
+          : 'Usuario o contraseña incorrectos.'
+      );
     } finally {
       setLoading(false);
     }
@@ -47,6 +56,17 @@ function LoginForm({ onLoggedIn }) {
       <h1>Acceso al Editor</h1>
       <form onSubmit={handleSubmit}>
         <div>
+          <label htmlFor="admin-username">Usuario</label>
+          <input
+            id="admin-username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            autoFocus
+          />
+        </div>
+        <div>
           <label htmlFor="admin-password">Contraseña</label>
           <input
             id="admin-password"
@@ -54,7 +74,6 @@ function LoginForm({ onLoggedIn }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            autoFocus
           />
         </div>
         {error && <p style={{ color: 'var(--vino)' }}>{error}</p>}
@@ -66,8 +85,8 @@ function LoginForm({ onLoggedIn }) {
   );
 }
 
-function PostForm({ initial, onSaved, onCancel }) {
-  const [form, setForm] = useState(initial || emptyForm);
+function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
+  const [form, setForm] = useState(initial || emptyForm(defaultAuthor));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -131,6 +150,17 @@ function PostForm({ initial, onSaved, onCancel }) {
         />
       </div>
       <div>
+        <label htmlFor="author">Autor</label>
+        <input
+          id="author"
+          type="text"
+          maxLength="80"
+          placeholder="Nombre que se mostrará como autor"
+          value={form.author}
+          onChange={(e) => set('author', e.target.value)}
+        />
+      </div>
+      <div>
         <label htmlFor="excerpt">Resumen corto</label>
         <textarea
           id="excerpt"
@@ -185,10 +215,10 @@ function PostForm({ initial, onSaved, onCancel }) {
   );
 }
 
-function Dashboard() {
+function Dashboard({ displayName, onDisplayNameChange }) {
   const [posts, setPosts] = useState(null);
   const [editing, setEditing] = useState(null); // null = list, {} = new, post = edit
-  const [changingPw, setChangingPw] = useState(false);
+  const [panel, setPanel] = useState(null); // null | 'password' | 'name'
 
   function reload() {
     adminListPosts().then((res) => setPosts(res.posts));
@@ -221,6 +251,7 @@ function Dashboard() {
         <h1>{editing.id ? 'Editar Artículo' : 'Nuevo Artículo'}</h1>
         <PostForm
           initial={editing.id ? editing : null}
+          defaultAuthor={displayName}
           onSaved={() => {
             setEditing(null);
             reload();
@@ -237,15 +268,24 @@ function Dashboard() {
         <div>
           <span className="eyebrow">Admin</span>
           <h1>Artículos del Blog</h1>
+          {displayName && <p style={{ margin: 0 }}>Sesión activa como <strong>{displayName}</strong></p>}
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nuevo Artículo</button>
-          <button className="btn btn-outline" onClick={() => setChangingPw((v) => !v)}>Cambiar Contraseña</button>
+          <button className="btn btn-outline" onClick={() => setPanel(panel === 'name' ? null : 'name')}>Cambiar Nombre</button>
+          <button className="btn btn-outline" onClick={() => setPanel(panel === 'password' ? null : 'password')}>Cambiar Contraseña</button>
           <button className="btn btn-outline" onClick={handleLogout}>Salir</button>
         </div>
       </div>
 
-      {changingPw && <ChangePasswordForm onDone={() => setChangingPw(false)} />}
+      {panel === 'password' && <ChangePasswordForm onDone={() => setPanel(null)} />}
+      {panel === 'name' && (
+        <ChangeNameForm
+          current={displayName}
+          onDone={() => setPanel(null)}
+          onChanged={onDisplayNameChange}
+        />
+      )}
 
       {posts === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
 
@@ -262,7 +302,9 @@ function Dashboard() {
                 <span className={`admin-status ${p.published ? 'is-published' : 'is-draft'}`}>
                   {p.published ? 'Publicado' : 'Borrador'}
                 </span>
-                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{p.date} · {p.category || 'Sin categoría'}</p>
+                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>
+                  {p.date} · {p.category || 'Sin categoría'} · Autor: {p.author || '—'}
+                </p>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn-ghost" onClick={() => handleEdit(p.id)}>Editar</button>
@@ -319,13 +361,59 @@ function ChangePasswordForm({ onDone }) {
   );
 }
 
+function ChangeNameForm({ current, onDone, onChanged }) {
+  const [name, setName] = useState(current || '');
+  const [error, setError] = useState('');
+  const [ok, setOk] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    try {
+      await updateDisplayName(name);
+      onChanged(name);
+      setOk(true);
+    } catch {
+      setError('No se pudo actualizar el nombre.');
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ marginTop: 24, maxWidth: 360 }}>
+      <div>
+        <label htmlFor="display-name">
+          Nombre a mostrar como autor (texto plano, sin enlace)
+        </label>
+        <input
+          id="display-name"
+          type="text"
+          required
+          maxLength="80"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      {error && <p style={{ color: 'var(--vino)' }}>{error}</p>}
+      {ok && <p>Nombre actualizado.</p>}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button type="submit" className="btn btn-primary">Guardar</button>
+        <button type="button" className="btn btn-outline" onClick={onDone}>Cerrar</button>
+      </div>
+    </form>
+  );
+}
+
 export default function Admin() {
   useDocumentTitle('Admin | Messtix');
   const [loggedIn, setLoggedIn] = useState(null);
+  const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
     getSession()
-      .then((res) => setLoggedIn(res.loggedIn))
+      .then((res) => {
+        setLoggedIn(res.loggedIn);
+        setDisplayName(res.displayName || '');
+      })
       .catch(() => setLoggedIn(false));
   }, []);
 
@@ -337,5 +425,18 @@ export default function Admin() {
     );
   }
 
-  return loggedIn ? <Dashboard /> : <LoginForm onLoggedIn={() => setLoggedIn(true)} />;
+  if (!loggedIn) {
+    return (
+      <LoginForm
+        onLoggedIn={() => {
+          getSession().then((res) => {
+            setLoggedIn(res.loggedIn);
+            setDisplayName(res.displayName || '');
+          });
+        }}
+      />
+    );
+  }
+
+  return <Dashboard displayName={displayName} onDisplayNameChange={setDisplayName} />;
 }

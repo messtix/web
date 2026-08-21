@@ -17,7 +17,8 @@ html{scroll-behavior:smooth;}
 body{
   margin:0;
   background:
-    radial-gradient(circle at 1px 1px, rgba(20,18,18,.055) 1px, transparent 0) 0 0/26px 26px,
+    radial-gradient(circle at 1px 1px, rgba(20,18,18,.1) 1.4px, transparent 0) 0 0/26px 26px,
+    linear-gradient(155deg, rgba(122,18,40,.05) 0%, transparent 35%, transparent 65%, rgba(20,18,18,.04) 100%),
     var(--white);
   color:var(--black);
   font-family:var(--sans);
@@ -25,26 +26,16 @@ body{
   -webkit-font-smoothing:antialiased;
   position:relative;
 }
-body::before,
-body::after{
+body::before{
   content:"";
   position:fixed;
-  border-radius:50%;
-  filter:blur(120px);
+  inset:0;
+  background:
+    radial-gradient(620px circle at 100% 0%, rgba(122,17,40,.16), transparent 60%),
+    radial-gradient(560px circle at 0% 100%, rgba(20,18,18,.11), transparent 60%),
+    radial-gradient(480px circle at 78% 62%, rgba(232,164,176,.16), transparent 65%);
   z-index:-1;
   pointer-events:none;
-}
-body::before{
-  top:-220px;right:-220px;
-  width:620px;height:620px;
-  background:var(--vino);
-  opacity:.07;
-}
-body::after{
-  bottom:-260px;left:-260px;
-  width:620px;height:620px;
-  background:var(--black);
-  opacity:.05;
 }
 img{max-width:100%;display:block;}
 a{color:inherit;text-decoration:none;}
@@ -95,6 +86,8 @@ p{margin:0 0 1em;color:var(--gray-text);}
 .btn-primary:hover{background:var(--vino-dark);box-shadow:0 10px 24px -8px rgba(122,17,40,.55);}
 .btn-outline{border-color:var(--black);color:var(--black);background:transparent;}
 .btn-outline:hover{background:var(--black);color:var(--white);box-shadow:0 10px 24px -10px rgba(20,18,18,.4);}
+.btn-outline-invert{border-color:#fff;color:#fff;background:transparent;}
+.btn-outline-invert:hover{background:#fff;color:var(--black);box-shadow:0 10px 24px -10px rgba(0,0,0,.35);}
 .btn-ghost{color:var(--vino);font-weight:600;}
 .btn-ghost:hover{text-decoration:underline;}
 
@@ -339,6 +332,9 @@ footer .social-links a:hover{color:var(--vino);}
 
 .post-article{max-width:720px;}
 .post-article p{color:var(--black);font-size:1.02rem;}
+.post-meta{margin-top:.2em;}
+.post-author{font-weight:600;color:var(--black);}
+.blog-card-author{font-size:.82rem;color:var(--gray-text);margin-top:-8px;}
 .post-cover{
   width:100%;max-height:420px;object-fit:cover;
   border-radius:var(--radius);margin-bottom:28px;

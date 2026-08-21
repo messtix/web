@@ -38,8 +38,9 @@ export function getSession() {
   return request('session');
 }
 
-export function login(password) {
+export function login(username, password) {
   const body = new FormData();
+  body.set('username', username);
   body.set('password', password);
   return request('login', { method: 'POST', body });
 }
@@ -53,6 +54,12 @@ export function changePassword(current, next) {
   body.set('current', current);
   body.set('new', next);
   return request('change_password', { method: 'POST', body });
+}
+
+export function updateDisplayName(name) {
+  const body = new FormData();
+  body.set('display_name', name);
+  return request('update_display_name', { method: 'POST', body });
 }
 
 export function adminListPosts() {
@@ -71,6 +78,7 @@ export function savePost(post) {
   body.set('content', post.content);
   body.set('category', post.category);
   body.set('cover_image', post.cover_image || '');
+  body.set('author', post.author || '');
   body.set('published', post.published ? 'true' : 'false');
   return request('save', { method: 'POST', body });
 }

@@ -92,11 +92,7 @@ export default function Home() {
               <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer" className="btn btn-primary">
                 Solicitar Asesoría Gratuita
               </a>
-              <a
-                href="/contacto"
-                className="btn btn-outline"
-                style={{ borderColor: '#fff', color: '#fff' }}
-              >
+              <a href="/contacto" className="btn btn-outline-invert">
                 Contacto
               </a>
             </div>

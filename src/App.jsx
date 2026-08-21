@@ -20,7 +20,7 @@ export default function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/contacto" element={<Contact />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/accessgranted" element={<Admin />} />
       </Route>
     </Routes>
   );

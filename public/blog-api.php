@@ -10,6 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 define('DATA_DIR', __DIR__ . '/data');
 define('POSTS_FILE', DATA_DIR . '/posts.json');
 define('ADMIN_FILE', DATA_DIR . '/admin.json');
+define('LOGIN_ATTEMPTS_FILE', DATA_DIR . '/login-attempts.json');
 define('UPLOAD_DIR', __DIR__ . '/img/blog');
 
 function fail($code, $error) {
@@ -26,6 +27,10 @@ function require_login() {
     if (!is_logged_in()) {
         fail(401, 'unauthorized');
     }
+}
+
+function client_ip() {
+    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
 
 function read_json_file($path, $default) {
@@ -50,6 +55,61 @@ function write_posts($posts) {
     flock($fp, LOCK_UN);
     fclose($fp);
     return true;
+}
+
+function write_admin($admin) {
+    file_put_contents(ADMIN_FILE, json_encode($admin, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+}
+
+/**
+ * Login attempt rate limiting: max 8 tries per 15 minutes per IP.
+ * Fails open (allows the attempt) if the store can't be read/written.
+ */
+function login_rate_limited($ip) {
+    if (!is_dir(DATA_DIR) && !@mkdir(DATA_DIR, 0755, true)) {
+        return false;
+    }
+    $fp = @fopen(LOGIN_ATTEMPTS_FILE, 'c+');
+    if (!$fp) {
+        return false;
+    }
+
+    flock($fp, LOCK_EX);
+    $raw = stream_get_contents($fp);
+    $store = json_decode($raw ?: '{}', true);
+    if (!is_array($store)) {
+        $store = [];
+    }
+
+    $now = time();
+    $window = 900; // 15 minutes
+    $limit = 8;
+    $key = hash('sha256', $ip);
+
+    $timestamps = array_values(array_filter($store[$key] ?? [], fn($t) => ($now - $t) < $window));
+    $blocked = count($timestamps) >= $limit;
+    if (!$blocked) {
+        $timestamps[] = $now;
+    }
+    $store[$key] = $timestamps;
+
+    foreach ($store as $k => $times) {
+        $times = array_values(array_filter($times, fn($t) => ($now - $t) < $window));
+        if (empty($times)) {
+            unset($store[$k]);
+        } else {
+            $store[$k] = $times;
+        }
+    }
+
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($store));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    return $blocked;
 }
 
 function slugify($text) {
@@ -100,6 +160,7 @@ if ($method === 'GET' && $action === 'list') {
             'excerpt' => $p['excerpt'],
             'category' => $p['category'],
             'date' => $p['date'],
+            'author' => $p['author'] ?? '',
             'cover_image' => $p['cover_image'] ?? '',
         ];
     }, $published);
@@ -122,15 +183,29 @@ if ($method === 'GET' && $action === 'get') {
 
 // ---- Auth: session check ----
 if ($method === 'GET' && $action === 'session') {
-    echo json_encode(['ok' => true, 'loggedIn' => is_logged_in()]);
+    $displayName = '';
+    if (is_logged_in()) {
+        $admin = read_json_file(ADMIN_FILE, []);
+        $displayName = $admin['display_name'] ?? '';
+    }
+    echo json_encode(['ok' => true, 'loggedIn' => is_logged_in(), 'displayName' => $displayName]);
     exit;
 }
 
 // ---- Auth: login ----
 if ($method === 'POST' && $action === 'login') {
-    $password = $_POST['password'] ?? '';
+    if (login_rate_limited(client_ip())) {
+        fail(429, 'rate_limited');
+    }
+
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
     $admin = read_json_file(ADMIN_FILE, null);
-    if (!$admin || !isset($admin['password_hash']) || !password_verify($password, $admin['password_hash'])) {
+
+    $validUser = $admin && isset($admin['username']) && strcasecmp($admin['username'], $username) === 0;
+    $validPass = $admin && isset($admin['password_hash']) && password_verify($password, $admin['password_hash']);
+
+    if (!$validUser || !$validPass) {
         fail(401, 'invalid_credentials');
     }
     session_regenerate_id(true);
@@ -160,7 +235,21 @@ if ($method === 'POST' && $action === 'change_password') {
         fail(422, 'password_too_short');
     }
     $admin['password_hash'] = password_hash($new, PASSWORD_BCRYPT);
-    file_put_contents(ADMIN_FILE, json_encode($admin));
+    write_admin($admin);
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+// ---- Admin: update display name (shown as post author) ----
+if ($method === 'POST' && $action === 'update_display_name') {
+    require_login();
+    $name = trim((string) ($_POST['display_name'] ?? ''));
+    if ($name === '' || mb_strlen($name) > 80) {
+        fail(422, 'invalid_name');
+    }
+    $admin = read_json_file(ADMIN_FILE, []);
+    $admin['display_name'] = $name;
+    write_admin($admin);
     echo json_encode(['ok' => true]);
     exit;
 }
@@ -197,11 +286,17 @@ if ($method === 'POST' && $action === 'save') {
     $content = trim((string) ($_POST['content'] ?? ''));
     $category = trim((string) ($_POST['category'] ?? ''));
     $coverImage = trim((string) ($_POST['cover_image'] ?? ''));
+    $author = trim((string) ($_POST['author'] ?? ''));
     $published = !empty($_POST['published']) && $_POST['published'] !== 'false';
     $id = trim((string) ($_POST['id'] ?? ''));
 
     if ($title === '' || $content === '') {
         fail(422, 'invalid_input');
+    }
+
+    if ($author === '') {
+        $admin = read_json_file(ADMIN_FILE, []);
+        $author = $admin['display_name'] ?? 'Messtix';
     }
 
     $posts = read_json_file(POSTS_FILE, []);
@@ -217,6 +312,7 @@ if ($method === 'POST' && $action === 'save') {
                 $p['content'] = $content;
                 $p['category'] = $category;
                 $p['cover_image'] = $coverImage;
+                $p['author'] = $author;
                 $p['published'] = $published;
                 $p['updated_at'] = date('c');
                 $found = true;
@@ -238,6 +334,7 @@ if ($method === 'POST' && $action === 'save') {
             'content' => $content,
             'category' => $category,
             'cover_image' => $coverImage,
+            'author' => $author,
             'published' => $published,
             'date' => date('Y-m-d'),
             'created_at' => date('c'),

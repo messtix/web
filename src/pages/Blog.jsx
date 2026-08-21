@@ -48,6 +48,7 @@ export default function Blog() {
                   <span className="blog-meta">{p.category || 'Artículo'}</span>
                   <h3>{p.title}</h3>
                   {p.excerpt && <p>{p.excerpt}</p>}
+                  {p.author && <p className="blog-card-author">Autor: {p.author}</p>}
                 </Link>
               ))}
             </div>

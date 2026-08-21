@@ -81,7 +81,14 @@ export default function BlogPost() {
         <div className="container">
           <span className="eyebrow">{post.category || 'Artículo'}</span>
           <h1>{post.title}</h1>
-          <p className="section-lead">{formatDate(post.date)}</p>
+          <p className="section-lead post-meta">
+            {formatDate(post.date)}
+            {post.author && (
+              <>
+                {' '}· Autor: <span className="post-author">{post.author}</span>
+              </>
+            )}
+          </p>
         </div>
       </section>
 
