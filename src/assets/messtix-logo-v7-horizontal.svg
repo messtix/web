@@ -1,0 +1,26 @@
+<svg viewBox="0 0 580 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&amp;display=swap');
+      .word { font-family: 'Poppins', 'Century Gothic', 'Arial Rounded MT Bold', sans-serif; font-weight: 800; }
+      .tag { font-family: 'Poppins', 'Century Gothic', sans-serif; font-weight: 500; }
+    </style>
+  </defs>
+  <rect width="580" height="180" fill="#ffffff"/>
+
+  <!-- Icon: three rounded bars, equal width, symmetric rhythm.
+       One idea only — reads as an abstract "m" and as a simple
+       systems/data bar-mark at once. Same stroke weight as the type. -->
+  <g transform="translate(48,50)">
+    <rect x="0"  y="20" width="14" height="46" rx="7" fill="#141212"/>
+    <rect x="27" y="0"  width="14" height="66" rx="7" fill="#7a1128"/>
+    <rect x="54" y="20" width="14" height="46" rx="7" fill="#141212"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="150" y="103" class="word" font-size="54" letter-spacing="-0.5" fill="#141212">mess<tspan fill="#7a1128">tix</tspan></text>
+
+  <line x1="152" y1="120" x2="480" y2="120" stroke="#e7e2e0" stroke-width="1.5"/>
+
+  <text x="150" y="144" class="tag" font-size="16" letter-spacing="0.5" fill="#5b5555">by Mar&#237;a S&#225;nchez</text>
+</svg>
