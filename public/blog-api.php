@@ -229,6 +229,26 @@ function sanitize_node($node, $allowedTags, $allowedAttrs, $allowedStyleProps) {
                 continue;
             }
 
+            if ($tag === 'br') {
+                // Content pasted from Word often carries literal <br> tags at
+                // each original line-wrap position. Rendered in a narrower
+                // column those land mid-word and cut it in half. A <br>
+                // directly between two word characters (no space, no
+                // punctuation) is almost certainly one of these paste
+                // artifacts, not an intentional line break.
+                $prevChar = ($child->previousSibling && $child->previousSibling->nodeType === XML_TEXT_NODE)
+                    ? mb_substr($child->previousSibling->textContent, -1)
+                    : '';
+                $nextChar = ($child->nextSibling && $child->nextSibling->nodeType === XML_TEXT_NODE)
+                    ? mb_substr($child->nextSibling->textContent, 0, 1)
+                    : '';
+                if (preg_match('/[\p{L}\p{N}]/u', $prevChar) && preg_match('/[\p{L}\p{N}]/u', $nextChar)) {
+                    $space = $child->ownerDocument->createTextNode(' ');
+                    $node->replaceChild($space, $child);
+                    continue;
+                }
+            }
+
             if ($child->hasAttributes()) {
                 $attrsToRemove = [];
                 foreach (iterator_to_array($child->attributes) as $attr) {

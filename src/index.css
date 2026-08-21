@@ -240,7 +240,7 @@ footer .social-links a:hover{color:var(--vino);}
 .card:hover .num{color:var(--vino);}
 .card h3{font-size:1.15rem;margin-bottom:.35em;color:var(--white);transition:color .25s ease;}
 .card:hover h3{color:var(--black);}
-.card p{margin:0;font-size:.94rem;color:#f1dee1;transition:color .25s ease;}
+.card p{margin:0;font-size:.94rem;color:#f1dee1;transition:color .25s ease;text-align:left;}
 .card:hover p{color:var(--gray-text);}
 
 /* Problem cards (dark variant strip) */
@@ -256,7 +256,7 @@ footer .social-links a:hover{color:var(--vino);}
   box-shadow:0 16px 30px -20px rgba(20,18,18,.3);
 }
 .problem-card h3{font-size:1.05rem;}
-.problem-card p{font-size:.92rem;margin:0;}
+.problem-card p{font-size:.92rem;margin:0;text-align:left;}
 
 /* Portfolio */
 .port-card{
@@ -290,6 +290,7 @@ footer .social-links a:hover{color:var(--vino);}
 @media(max-width:860px){.steps{grid-template-columns:1fr 1fr;}}
 .step{padding:24px 0;border-top:2px solid var(--black);}
 .step .num{font-family:var(--serif);font-size:1.6rem;color:var(--vino);}
+.step p{text-align:left;}
 
 /* Skills pills */
 .pills{display:flex;flex-wrap:wrap;gap:12px;}

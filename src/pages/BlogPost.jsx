@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { getPost } from '../api/blog';
+import cleanPostHtml from '../lib/cleanPostHtml';
 
 function formatDate(iso) {
   try {
@@ -98,7 +99,7 @@ export default function BlogPost() {
             )}
             <div
               className="post-body"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: cleanPostHtml(post.content) }}
             />
           </article>
           <p style={{ marginTop: 32 }}>
