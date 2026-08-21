@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
+import SocialLinks from './SocialLinks';
 
 export default function Footer() {
   return (
@@ -11,8 +12,9 @@ export default function Footer() {
               <Logo variant="light" />
             </Link>
             <p style={{ marginTop: 12, maxWidth: 280 }}>
-              Desarrollo web, automatización e inteligencia artificial para empresas.
+              Desarrollo web, soporte y automatización con IA, adaptados a lo que necesitas.
             </p>
+            <SocialLinks />
           </div>
           <div>
             <h4>Navegación</h4>
@@ -27,7 +29,7 @@ export default function Footer() {
             <h4>Contacto</h4>
             <ul>
               <li><a href="mailto:info@messtix.com">info@messtix.com</a></li>
-              <li><Link to="/contacto">Contacto</Link></li>
+              <li><Link to="/contacto">Formulario</Link></li>
             </ul>
           </div>
         </div>

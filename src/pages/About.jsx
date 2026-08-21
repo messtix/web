@@ -20,12 +20,13 @@ const steps = [
 ];
 
 const events = [
-  { alt: 'Charla sobre tipos de inteligencia artificial', img: '/img/eventos/tipos-de-ia.jpg' },
+  { alt: 'Workshop: El poder de una web optimizada en zuWebFest22', img: '/img/eventos/poder-web-optimizada-zuwebfest22.jpg' },
   { alt: 'Tendencias y Nuevos Retos Digitales en zuWebFest18', img: '/img/eventos/tendencias-zuwebfest18.jpg' },
   { alt: 'MeetUp de Emprendedores: Chatbots (Inteligencia Artificial) y Atención al Cliente', img: '/img/eventos/meetup-chatbots.jpg' },
   { alt: 'Workshop: ¿Cómo hacer una tienda online con WooCommerce? en zuWebFest20', img: '/img/eventos/woocommerce-zuwebfest20.jpg' },
   { alt: 'Workshop: WordPress Tabú - El placer de una web segura en zuWebFest19', img: '/img/eventos/wordpress-tabu-zuwebfest19.jpg' },
-  { alt: 'Panel en zuWebFest', img: '/img/eventos/panel-zuwebfest.jpg' },
+  { alt: 'Foro: ¿Cómo vivir de WordPress? en zuWebFest21', img: '/img/eventos/foro-como-vivir-de-wordpress-zuwebfest21.jpg' },
+  { alt: 'Maracaibo WordPress MeetUp: Las 12 claves del éxito en WordPress', img: '/img/eventos/maracaibo-wordpress-meetup.jpg' },
 ];
 
 export default function About() {
@@ -44,7 +45,9 @@ export default function About() {
               soluciones eficientes.
             </p>
           </div>
-          <div className="avatar-ring">MS</div>
+          <div className="avatar-ring">
+            <img src="/img/maria-sanchez.jpg" alt="María Sánchez" />
+          </div>
         </div>
       </section>
 

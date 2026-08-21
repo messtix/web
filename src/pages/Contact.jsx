@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SocialLinks from '../components/SocialLinks';
 
 export default function Contact() {
   const [sent, setSent] = useState(false);
@@ -28,8 +29,8 @@ export default function Contact() {
             ) : (
               <form onSubmit={handleSubmit}>
                 <div>
-                  <label htmlFor="name">Nombre</label>
-                  <input id="name" name="name" type="text" required placeholder="Tu nombre" />
+                  <label htmlFor="name">Nombre Completo</label>
+                  <input id="name" name="name" type="text" required placeholder="Tu nombre completo" />
                 </div>
                 <div>
                   <label htmlFor="email">Correo electrónico</label>
@@ -54,6 +55,10 @@ export default function Contact() {
               <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer">
                 Agendar en Calendly
               </a>
+            </div>
+            <div className="row">
+              <h4>Redes Sociales</h4>
+              <SocialLinks />
             </div>
           </div>
         </div>

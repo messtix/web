@@ -1,6 +1,6 @@
 const specialties = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables.' },
-  { num: '02', title: 'Automatización Empresarial', desc: 'Flujos de trabajo automatizados.' },
+  { num: '02', title: 'Automatización de Procesos', desc: 'Flujos de trabajo automatizados.' },
   { num: '03', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas.' },
   { num: '04', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente.' },
   { num: '05', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web.' },
@@ -25,8 +25,8 @@ export default function Home() {
               Desarrollo Web, <em>Automatización</em> e Inteligencia Artificial para Empresas
             </h1>
             <p className="lead">
-              Ayudo a empresas a optimizar sus sitios web, automatizar procesos y crear
-              sistemas digitales eficientes.
+              Ayudo a optimizar sitios web, automatizar procesos y desarrollar soluciones
+              digitales eficientes, adaptadas a cada necesidad.
             </p>
             <div className="hero-actions">
               <a href="/servicios" className="btn btn-primary">Ver Servicios</a>
@@ -80,8 +80,8 @@ export default function Home() {
         <div className="container">
           <div className="cta-band">
             <div>
-              <h2>Optimiza tu infraestructura digital y automatiza tu negocio</h2>
-              <p>Consultoría personalizada para llevar tu negocio al siguiente nivel tecnológico.</p>
+              <h2>Optimiza, automatiza y potencia tu presencia digital</h2>
+              <p>Consultoría personalizada en desarrollo web, soporte, automatización e inteligencia artificial, adaptada a tus necesidades.</p>
             </div>
             <div className="hero-actions" style={{ marginTop: 0 }}>
               <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer" className="btn btn-primary">

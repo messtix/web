@@ -1,9 +1,10 @@
 const services = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables, construidos a medida para tu negocio.' },
-  { num: '02', title: 'Automatización Empresarial', desc: 'Flujos de trabajo automatizados que eliminan tareas manuales repetitivas.' },
-  { num: '03', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas para centralizar tu información.' },
-  { num: '04', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente disponibles 24/7.' },
-  { num: '05', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web, seguridad y rendimiento.' },
+  { num: '02', title: 'Diseño UX', desc: 'Experiencias digitales claras, usables y centradas en tus clientes.' },
+  { num: '03', title: 'Automatización de Procesos', desc: 'Flujos de trabajo automatizados que eliminan tareas manuales repetitivas.' },
+  { num: '04', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas para centralizar tu información.' },
+  { num: '05', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente disponibles 24/7.' },
+  { num: '06', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web, seguridad y rendimiento.' },
 ];
 
 export default function Services() {

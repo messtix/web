@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import Logo from './Logo';
+import SocialLinks from './SocialLinks';
 
 const links = [
   { to: '/', label: 'Inicio' },
@@ -28,6 +29,9 @@ export default function Header() {
               </NavLink>
             </li>
           ))}
+          <li className="header-social">
+            <SocialLinks />
+          </li>
           <li className="nav-cta">
             <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer" className="btn btn-primary">
               Asesoría Gratis
