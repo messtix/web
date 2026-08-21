@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -7,7 +8,8 @@ import Portfolio from './pages/Portfolio';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import Contact from './pages/Contact';
-import Admin from './pages/Admin';
+
+const Admin = lazy(() => import('./pages/Admin'));
 
 export default function App() {
   return (
@@ -20,7 +22,14 @@ export default function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/contacto" element={<Contact />} />
-        <Route path="/accessgranted" element={<Admin />} />
+        <Route
+          path="/accessgranted"
+          element={
+            <Suspense fallback={<div className="container" style={{ paddingTop: 80 }}>Cargando…</div>}>
+              <Admin />
+            </Suspense>
+          }
+        />
       </Route>
     </Routes>
   );

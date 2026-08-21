@@ -73,8 +73,6 @@ export default function BlogPost() {
     );
   }
 
-  const paragraphs = post.content.split(/\n\s*\n/).filter(Boolean);
-
   return (
     <>
       <section className="page-hero">
@@ -98,16 +96,10 @@ export default function BlogPost() {
             {post.cover_image && (
               <img className="post-cover" src={post.cover_image} alt={post.title} />
             )}
-            {paragraphs.map((para, i) => (
-              <p key={i}>
-                {para.split('\n').map((line, j, arr) => (
-                  <span key={j}>
-                    {line}
-                    {j < arr.length - 1 && <br />}
-                  </span>
-                ))}
-              </p>
-            ))}
+            <div
+              className="post-body"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
           </article>
           <p style={{ marginTop: 32 }}>
             <Link to="/blog" className="btn-ghost">← Volver al blog</Link>

@@ -126,6 +126,125 @@ function slugify($text) {
     return $text !== '' ? $text : 'post';
 }
 
+/**
+ * Whitelist-based HTML sanitizer for rich text editor output.
+ * Strips anything not explicitly allowed (scripts, event handlers,
+ * javascript: URLs, unknown tags/attributes/CSS properties).
+ */
+function sanitize_html($html) {
+    $html = trim((string) $html);
+    if ($html === '') {
+        return '';
+    }
+
+    $allowedTags = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'a', 'span'];
+    $allowedAttrs = [
+        'a' => ['href', 'target', 'rel'],
+        'span' => ['style'],
+        'p' => ['style'],
+        'li' => ['style'],
+    ];
+    $allowedStyleProps = ['color', 'background-color', 'text-align', 'font-size', 'font-family'];
+
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument();
+    $dom->loadHTML(
+        '<?xml encoding="utf-8"?><div>' . $html . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+
+    $wrapper = $dom->getElementsByTagName('div')->item(0);
+    if (!$wrapper) {
+        return '';
+    }
+    sanitize_node($wrapper, $allowedTags, $allowedAttrs, $allowedStyleProps);
+
+    $out = '';
+    foreach (iterator_to_array($wrapper->childNodes) as $child) {
+        $out .= $dom->saveHTML($child);
+    }
+    return $out;
+}
+
+function sanitize_style($style, $allowedProps) {
+    $out = [];
+    foreach (explode(';', $style) as $decl) {
+        $parts = explode(':', $decl, 2);
+        if (count($parts) !== 2) {
+            continue;
+        }
+        $prop = strtolower(trim($parts[0]));
+        $val = trim($parts[1]);
+        if (
+            in_array($prop, $allowedProps, true)
+            && stripos($val, 'expression') === false
+            && stripos($val, 'javascript') === false
+            && stripos($val, 'url(') === false
+        ) {
+            $out[] = "$prop:$val";
+        }
+    }
+    return implode(';', $out);
+}
+
+function sanitize_node($node, $allowedTags, $allowedAttrs, $allowedStyleProps) {
+    $toRemove = [];
+    foreach (iterator_to_array($node->childNodes) as $child) {
+        if ($child->nodeType === XML_ELEMENT_NODE) {
+            $tag = strtolower($child->nodeName);
+
+            if (!in_array($tag, $allowedTags, true)) {
+                if (in_array($tag, ['script', 'style', 'iframe', 'object', 'embed', 'form', 'svg'], true)) {
+                    $toRemove[] = $child;
+                    continue;
+                }
+                // Unknown but harmless tag (e.g. div from a paste): unwrap, keep children/text.
+                while ($child->firstChild) {
+                    $node->insertBefore($child->firstChild, $child);
+                }
+                $toRemove[] = $child;
+                continue;
+            }
+
+            if ($child->hasAttributes()) {
+                $attrsToRemove = [];
+                foreach (iterator_to_array($child->attributes) as $attr) {
+                    $name = strtolower($attr->name);
+                    $allowed = $allowedAttrs[$tag] ?? [];
+                    if (!in_array($name, $allowed, true)) {
+                        $attrsToRemove[] = $attr->name;
+                        continue;
+                    }
+                    if ($name === 'href' && stripos(trim($attr->value), 'javascript:') === 0) {
+                        $attrsToRemove[] = $attr->name;
+                    }
+                    if ($name === 'style') {
+                        $child->setAttribute('style', sanitize_style($attr->value, $allowedStyleProps));
+                    }
+                }
+                foreach ($attrsToRemove as $an) {
+                    $child->removeAttribute($an);
+                }
+            }
+
+            if ($tag === 'a') {
+                $child->setAttribute('target', '_blank');
+                $child->setAttribute('rel', 'noopener noreferrer');
+            }
+
+            sanitize_node($child, $allowedTags, $allowedAttrs, $allowedStyleProps);
+        } elseif ($child->nodeType !== XML_TEXT_NODE) {
+            $toRemove[] = $child;
+        }
+    }
+    foreach ($toRemove as $r) {
+        if ($r->parentNode) {
+            $r->parentNode->removeChild($r);
+        }
+    }
+}
+
 function slug_taken($slug, $posts, $excludeId) {
     foreach ($posts as $p) {
         if ($p['slug'] === $slug && $p['id'] !== $excludeId) {
@@ -283,14 +402,14 @@ if ($method === 'POST' && $action === 'save') {
 
     $title = trim((string) ($_POST['title'] ?? ''));
     $excerpt = trim((string) ($_POST['excerpt'] ?? ''));
-    $content = trim((string) ($_POST['content'] ?? ''));
+    $content = sanitize_html($_POST['content'] ?? '');
     $category = trim((string) ($_POST['category'] ?? ''));
     $coverImage = trim((string) ($_POST['cover_image'] ?? ''));
     $author = trim((string) ($_POST['author'] ?? ''));
     $published = !empty($_POST['published']) && $_POST['published'] !== 'false';
     $id = trim((string) ($_POST['id'] ?? ''));
 
-    if ($title === '' || $content === '') {
+    if ($title === '' || trim(strip_tags($content)) === '') {
         fail(422, 'invalid_input');
     }
 

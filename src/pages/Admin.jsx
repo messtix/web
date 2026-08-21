@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import RichTextEditor from '../components/RichTextEditor';
 import {
   getSession,
   login,
@@ -113,8 +114,20 @@ function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setSaving(true);
     setError('');
+
+    if (uploading) {
+      setError('Espera a que termine de subirse la imagen antes de guardar.');
+      return;
+    }
+
+    const isContentEmpty = form.content.replace(/<[^>]*>/g, '').trim() === '';
+    if (!form.title.trim() || isContentEmpty) {
+      setError('El título y el contenido del artículo son obligatorios.');
+      return;
+    }
+
+    setSaving(true);
     try {
       await savePost(form);
       onSaved();
@@ -173,13 +186,10 @@ function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
       </div>
       <div>
         <label htmlFor="content">Contenido</label>
-        <textarea
-          id="content"
-          rows="14"
-          required
-          placeholder="Escribe el artículo. Deja una línea en blanco entre párrafos."
+        <RichTextEditor
           value={form.content}
-          onChange={(e) => set('content', e.target.value)}
+          onChange={(html) => set('content', html)}
+          placeholder="Escribe el artículo…"
         />
       </div>
       <div>
@@ -204,8 +214,8 @@ function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
       {error && <p style={{ color: 'var(--vino)' }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 12 }}>
-        <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar Artículo'}
+        <button type="submit" className="btn btn-primary" disabled={saving || uploading}>
+          {saving ? 'Guardando…' : uploading ? 'Subiendo imagen…' : 'Guardar Artículo'}
         </button>
         <button type="button" className="btn btn-outline" onClick={onCancel}>
           Cancelar
