@@ -5,6 +5,7 @@ import useDocumentTitle from '../hooks/useDocumentTitle';
 export default function Contact() {
   useDocumentTitle('Contacto | María Sánchez - Messtix');
   const [status, setStatus] = useState('idle'); // idle | sending | sent | error
+  const [startedAt] = useState(() => Date.now());
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -12,6 +13,7 @@ export default function Contact() {
 
     const form = e.target;
     const data = new FormData(form);
+    data.set('started_at', String(startedAt));
 
     try {
       const res = await fetch('/contact.php', {
@@ -49,17 +51,27 @@ export default function Contact() {
               <p>Gracias por tu mensaje. Te responderé pronto.</p>
             ) : (
               <form onSubmit={handleSubmit}>
+                <div className="honeypot-field" aria-hidden="true">
+                  <label htmlFor="company">No llenar este campo</label>
+                  <input
+                    id="company"
+                    name="company"
+                    type="text"
+                    tabIndex="-1"
+                    autoComplete="off"
+                  />
+                </div>
                 <div>
                   <label htmlFor="name">Nombre Completo</label>
-                  <input id="name" name="name" type="text" required placeholder="Tu nombre completo" />
+                  <input id="name" name="name" type="text" required maxLength="100" placeholder="Tu nombre completo" />
                 </div>
                 <div>
                   <label htmlFor="email">Correo electrónico</label>
-                  <input id="email" name="email" type="email" required placeholder="tucorreo@ejemplo.com" />
+                  <input id="email" name="email" type="email" required maxLength="150" placeholder="tucorreo@ejemplo.com" />
                 </div>
                 <div>
                   <label htmlFor="message">Mensaje</label>
-                  <textarea id="message" name="message" rows="6" required placeholder="Cuéntame sobre tu proyecto"></textarea>
+                  <textarea id="message" name="message" rows="6" required maxLength="5000" placeholder="Cuéntame sobre tu proyecto"></textarea>
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={status === 'sending'}>
                   {status === 'sending' ? 'Enviando…' : 'Enviar Mensaje'}

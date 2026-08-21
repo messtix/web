@@ -281,6 +281,10 @@ input,textarea{
   background:var(--white);color:var(--black);
 }
 input:focus,textarea:focus{outline:2px solid var(--vino);outline-offset:1px;border-color:var(--vino);}
+.honeypot-field{
+  position:absolute;left:-9999px;top:auto;
+  width:1px;height:1px;overflow:hidden;
+}
 .contact-info-card{
   background:var(--gray-soft);border:1px solid var(--gray-line);
   border-radius:var(--radius);padding:30px;
