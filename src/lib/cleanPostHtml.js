@@ -8,6 +8,12 @@ const WORD_CHAR = /[\p{L}\p{N}]/u;
  * space, no punctuation) is almost certainly one of these paste
  * artifacts rather than an intentional line break, so it's replaced
  * with a single space.
+ *
+ * The adjacent content is frequently wrapped in an inline element
+ * (e.g. a <span style="color:..."> from the rich text editor's color
+ * or font-size formatting), not a bare text node, so this reads
+ * textContent on whatever sibling is there rather than requiring a
+ * literal Text node.
  */
 export default function cleanPostHtml(html) {
   if (!html) return html;
@@ -17,12 +23,10 @@ export default function cleanPostHtml(html) {
   const breaks = doc.body.querySelectorAll('br');
 
   breaks.forEach((br) => {
-    const prevChar = br.previousSibling?.nodeType === 3
-      ? br.previousSibling.textContent.slice(-1)
-      : '';
-    const nextChar = br.nextSibling?.nodeType === 3
-      ? br.nextSibling.textContent.slice(0, 1)
-      : '';
+    const prevText = br.previousSibling?.textContent || '';
+    const nextText = br.nextSibling?.textContent || '';
+    const prevChar = prevText.slice(-1);
+    const nextChar = nextText.slice(0, 1);
 
     if (WORD_CHAR.test(prevChar) && WORD_CHAR.test(nextChar)) {
       br.replaceWith(doc.createTextNode(' '));

@@ -236,10 +236,12 @@ function sanitize_node($node, $allowedTags, $allowedAttrs, $allowedStyleProps) {
                 // directly between two word characters (no space, no
                 // punctuation) is almost certainly one of these paste
                 // artifacts, not an intentional line break.
-                $prevChar = ($child->previousSibling && $child->previousSibling->nodeType === XML_TEXT_NODE)
+                // textContent works on element siblings too (e.g. a <span>
+                // from color/font formatting), not just plain text nodes.
+                $prevChar = $child->previousSibling
                     ? mb_substr($child->previousSibling->textContent, -1)
                     : '';
-                $nextChar = ($child->nextSibling && $child->nextSibling->nodeType === XML_TEXT_NODE)
+                $nextChar = $child->nextSibling
                     ? mb_substr($child->nextSibling->textContent, 0, 1)
                     : '';
                 if (preg_match('/[\p{L}\p{N}]/u', $prevChar) && preg_match('/[\p{L}\p{N}]/u', $nextChar)) {
