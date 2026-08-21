@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import { listPosts } from '../api/blog';
 
 const specialties = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables.' },
@@ -18,6 +21,13 @@ const problems = [
 
 export default function Home() {
   useDocumentTitle('María Sánchez | Desarrollo Web, Automatización e IA');
+  const [latestPosts, setLatestPosts] = useState([]);
+
+  useEffect(() => {
+    listPosts(3)
+      .then((res) => setLatestPosts(res.posts))
+      .catch(() => setLatestPosts([]));
+  }, []);
 
   return (
     <>
@@ -80,6 +90,35 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {latestPosts.length > 0 && (
+        <section className="section">
+          <div className="container">
+            <span className="eyebrow">Blog</span>
+            <h2 className="section-title">Últimas Publicaciones</h2>
+            <p className="section-lead">
+              Artículos recientes sobre desarrollo web, automatización e inteligencia artificial.
+            </p>
+            <div className="grid grid-3" style={{ marginTop: 40 }}>
+              {latestPosts.map((p) => (
+                <Link to={`/blog/${p.slug}`} className="blog-card" key={p.slug}>
+                  {p.cover_image && (
+                    <div className="blog-card-cover">
+                      <img src={p.cover_image} alt={p.title} loading="lazy" />
+                    </div>
+                  )}
+                  <span className="blog-meta">{p.category || 'Artículo'}</span>
+                  <h3>{p.title}</h3>
+                  {p.excerpt && <p>{p.excerpt}</p>}
+                </Link>
+              ))}
+            </div>
+            <p style={{ marginTop: 32 }}>
+              <Link to="/blog" className="btn-ghost">Ver todos los artículos →</Link>
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="container">

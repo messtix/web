@@ -325,7 +325,7 @@ $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 if ($method === 'GET' && $action === 'list') {
     $posts = read_json_file(POSTS_FILE, []);
     $published = array_values(array_filter($posts, fn($p) => !empty($p['published'])));
-    usort($published, fn($a, $b) => strcmp($b['date'], $a['date']));
+    usort($published, fn($a, $b) => strcmp($b['created_at'] ?? $b['date'], $a['created_at'] ?? $a['date']));
     $summaries = array_map(function ($p) {
         return [
             'slug' => $p['slug'],
@@ -337,6 +337,12 @@ if ($method === 'GET' && $action === 'list') {
             'cover_image' => $p['cover_image'] ?? '',
         ];
     }, $published);
+
+    $limit = isset($_GET['limit']) ? max(0, (int) $_GET['limit']) : 0;
+    if ($limit > 0) {
+        $summaries = array_slice($summaries, 0, $limit);
+    }
+
     echo json_encode(['ok' => true, 'posts' => $summaries]);
     exit;
 }
@@ -431,7 +437,7 @@ if ($method === 'POST' && $action === 'update_display_name') {
 if ($method === 'GET' && $action === 'admin_list') {
     require_login();
     $posts = read_json_file(POSTS_FILE, []);
-    usort($posts, fn($a, $b) => strcmp($b['date'], $a['date']));
+    usort($posts, fn($a, $b) => strcmp($b['created_at'] ?? $b['date'], $a['created_at'] ?? $a['date']));
     echo json_encode(['ok' => true, 'posts' => $posts]);
     exit;
 }

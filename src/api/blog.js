@@ -26,8 +26,8 @@ async function request(action, { method = 'GET', params, body } = {}) {
   return data;
 }
 
-export function listPosts() {
-  return request('list');
+export function listPosts(limit) {
+  return request('list', limit ? { params: { limit } } : undefined);
 }
 
 export function getPost(slug) {
