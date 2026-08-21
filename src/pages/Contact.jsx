@@ -2,11 +2,30 @@ import { useState } from 'react';
 import SocialLinks from '../components/SocialLinks';
 
 export default function Contact() {
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState('idle'); // idle | sending | sent | error
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setSent(true);
+    setStatus('sending');
+
+    const form = e.target;
+    const data = new FormData(form);
+
+    try {
+      const res = await fetch('/contact.php', {
+        method: 'POST',
+        body: data,
+      });
+      const result = await res.json();
+      if (res.ok && result.ok) {
+        setStatus('sent');
+        form.reset();
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
   }
 
   return (
@@ -24,7 +43,7 @@ export default function Contact() {
       <section className="section">
         <div className="container contact-grid">
           <div>
-            {sent ? (
+            {status === 'sent' ? (
               <p>Gracias por tu mensaje. Te responderé pronto.</p>
             ) : (
               <form onSubmit={handleSubmit}>
@@ -40,7 +59,15 @@ export default function Contact() {
                   <label htmlFor="message">Mensaje</label>
                   <textarea id="message" name="message" rows="6" required placeholder="Cuéntame sobre tu proyecto"></textarea>
                 </div>
-                <button type="submit" className="btn btn-primary">Enviar Mensaje</button>
+                <button type="submit" className="btn btn-primary" disabled={status === 'sending'}>
+                  {status === 'sending' ? 'Enviando…' : 'Enviar Mensaje'}
+                </button>
+                {status === 'error' && (
+                  <p style={{ color: 'var(--vino)', margin: 0 }}>
+                    Hubo un problema al enviar tu mensaje. Intenta de nuevo o escríbeme directo a{' '}
+                    <a href="mailto:info@messtix.com">info@messtix.com</a>.
+                  </p>
+                )}
               </form>
             )}
           </div>
