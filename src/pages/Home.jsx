@@ -1,10 +1,9 @@
 const specialties = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables.' },
-  { num: '02', title: 'WordPress Avanzado', desc: 'Desarrollo a medida, plugins y optimización.' },
-  { num: '03', title: 'Automatización Empresarial', desc: 'Flujos de trabajo automatizados.' },
-  { num: '04', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas.' },
-  { num: '05', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente.' },
-  { num: '06', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web.' },
+  { num: '02', title: 'Automatización Empresarial', desc: 'Flujos de trabajo automatizados.' },
+  { num: '03', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas.' },
+  { num: '04', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente.' },
+  { num: '05', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web.' },
 ];
 
 const problems = [
@@ -89,13 +88,11 @@ export default function Home() {
                 Solicitar Asesoría Gratuita
               </a>
               <a
-                href="https://wa.me/584246383453"
-                target="_blank"
-                rel="noreferrer"
+                href="/contacto"
                 className="btn btn-outline"
                 style={{ borderColor: '#fff', color: '#fff' }}
               >
-                WhatsApp
+                Contacto
               </a>
             </div>
           </div>

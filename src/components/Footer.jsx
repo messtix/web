@@ -27,8 +27,7 @@ export default function Footer() {
             <h4>Contacto</h4>
             <ul>
               <li><a href="mailto:info@messtix.com">info@messtix.com</a></li>
-              <li><a href="https://wa.me/584246383453" target="_blank" rel="noreferrer">WhatsApp</a></li>
-              <li><a href="tel:+584246383453">+58 424 6383453</a></li>
+              <li><Link to="/contacto">Contacto</Link></li>
             </ul>
           </div>
         </div>

@@ -3,7 +3,6 @@ import Lightbox from '../components/Lightbox';
 
 const skills = [
   'Arquitectura Web',
-  'WordPress Avanzado',
   'Optimización de Rendimiento',
   'Integraciones API',
   'Asistentes Virtuales',
@@ -21,14 +20,12 @@ const steps = [
 ];
 
 const events = [
-  'Charla sobre tipos de inteligencia artificial',
-  'Ponencia sobre seguridad web en zuWebFest',
-  'Charla sobre seguridad en WordPress',
-  'Ponencia con micrófono',
-  'Transmisión zuWebFest',
-  'Charla zuWebFest19',
-  'Panel en zuWebFest',
-  'Ponencia con micrófono inalámbrico',
+  { alt: 'Charla sobre tipos de inteligencia artificial', img: '/img/eventos/tipos-de-ia.jpg' },
+  { alt: 'Tendencias y Nuevos Retos Digitales en zuWebFest18', img: '/img/eventos/tendencias-zuwebfest18.jpg' },
+  { alt: 'MeetUp de Emprendedores: Chatbots (Inteligencia Artificial) y Atención al Cliente', img: '/img/eventos/meetup-chatbots.jpg' },
+  { alt: 'Workshop: ¿Cómo hacer una tienda online con WooCommerce? en zuWebFest20', img: '/img/eventos/woocommerce-zuwebfest20.jpg' },
+  { alt: 'Workshop: WordPress Tabú - El placer de una web segura en zuWebFest19', img: '/img/eventos/wordpress-tabu-zuwebfest19.jpg' },
+  { alt: 'Panel en zuWebFest', img: '/img/eventos/panel-zuwebfest.jpg' },
 ];
 
 export default function About() {
@@ -88,14 +85,23 @@ export default function About() {
             Charlas y conferencias sobre desarrollo web, seguridad e inteligencia artificial.
           </p>
           <div className="gallery-grid" style={{ marginTop: 40 }}>
-            {events.map((alt) => (
+            {events.map((event) => (
               <button
-                key={alt}
+                key={event.alt}
                 type="button"
                 className="gallery-item"
-                onClick={() => setActive({ alt })}
+                onClick={() => setActive(event)}
               >
-                {alt}
+                <img
+                  src={event.img}
+                  alt={event.alt}
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <span className="gallery-item-fallback">{event.alt}</span>
               </button>
             ))}
           </div>

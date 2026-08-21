@@ -1,10 +1,9 @@
 const services = [
   { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables, construidos a medida para tu negocio.' },
-  { num: '02', title: 'WordPress Avanzado', desc: 'Desarrollo a medida, plugins personalizados y optimización de rendimiento.' },
-  { num: '03', title: 'Automatización Empresarial', desc: 'Flujos de trabajo automatizados que eliminan tareas manuales repetitivas.' },
-  { num: '04', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas para centralizar tu información.' },
-  { num: '05', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente disponibles 24/7.' },
-  { num: '06', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web, seguridad y rendimiento.' },
+  { num: '02', title: 'Automatización Empresarial', desc: 'Flujos de trabajo automatizados que eliminan tareas manuales repetitivas.' },
+  { num: '03', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas para centralizar tu información.' },
+  { num: '04', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente disponibles 24/7.' },
+  { num: '05', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web, seguridad y rendimiento.' },
 ];
 
 export default function Services() {
@@ -47,13 +46,11 @@ export default function Services() {
                 Solicitar Asesoría Gratuita
               </a>
               <a
-                href="https://wa.me/584246383453"
-                target="_blank"
-                rel="noreferrer"
+                href="/contacto"
                 className="btn btn-outline"
                 style={{ borderColor: '#fff', color: '#fff' }}
               >
-                WhatsApp
+                Contacto
               </a>
             </div>
           </div>

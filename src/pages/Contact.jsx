@@ -50,16 +50,6 @@ export default function Contact() {
               <a href="mailto:info@messtix.com">info@messtix.com</a>
             </div>
             <div className="row">
-              <h4>WhatsApp</h4>
-              <a href="https://wa.me/584246383453" target="_blank" rel="noreferrer">
-                +58 424 6383453
-              </a>
-            </div>
-            <div className="row">
-              <h4>Teléfono</h4>
-              <a href="tel:+584246383453">+58 424 6383453</a>
-            </div>
-            <div className="row">
               <h4>Asesoría Gratuita</h4>
               <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer">
                 Agendar en Calendly
