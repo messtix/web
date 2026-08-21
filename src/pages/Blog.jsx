@@ -1,40 +1,18 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-
-const posts = [
-  {
-    meta: 'Desarrollo Web',
-    title: '5 claves para optimizar la velocidad de tu sitio web',
-    desc: 'Prácticas esenciales para reducir tiempos de carga y mejorar la experiencia de usuario.',
-  },
-  {
-    meta: 'Automatización',
-    title: 'Cómo la automatización de procesos ahorra tiempo a tu empresa',
-    desc: 'Identifica tareas repetitivas y conviértelas en flujos automáticos eficientes.',
-  },
-  {
-    meta: 'Inteligencia Artificial',
-    title: 'Asistentes virtuales: el futuro de la atención al cliente',
-    desc: 'Ventajas de implementar chatbots inteligentes en tu negocio.',
-  },
-  {
-    meta: 'Seguridad Web',
-    title: 'Buenas prácticas de seguridad para sitios WordPress',
-    desc: 'Protege tu sitio de vulnerabilidades comunes con estas recomendaciones.',
-  },
-  {
-    meta: 'SEO Técnico',
-    title: 'Fundamentos de SEO técnico que todo sitio debería cumplir',
-    desc: 'Los aspectos técnicos que más impactan tu posicionamiento en buscadores.',
-  },
-  {
-    meta: 'Integraciones',
-    title: 'Conectando tus sistemas: integraciones API explicadas',
-    desc: 'Cómo unificar tus plataformas para una operación más eficiente.',
-  },
-];
+import { listPosts } from '../api/blog';
 
 export default function Blog() {
   useDocumentTitle('Blog | María Sánchez - Messtix');
+  const [posts, setPosts] = useState(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    listPosts()
+      .then((res) => setPosts(res.posts))
+      .catch(() => setError(true));
+  }, []);
 
   return (
     <>
@@ -50,15 +28,30 @@ export default function Blog() {
 
       <section className="section">
         <div className="container">
-          <div className="grid grid-3">
-            {posts.map((p) => (
-              <div className="blog-card" key={p.title}>
-                <span className="blog-meta">{p.meta}</span>
-                <h3>{p.title}</h3>
-                <p>{p.desc}</p>
-              </div>
-            ))}
-          </div>
+          {error && <p>No se pudieron cargar los artículos. Intenta de nuevo más tarde.</p>}
+
+          {!error && posts === null && <p>Cargando artículos…</p>}
+
+          {!error && posts !== null && posts.length === 0 && (
+            <p>Todavía no hay artículos publicados. Vuelve pronto.</p>
+          )}
+
+          {!error && posts !== null && posts.length > 0 && (
+            <div className="grid grid-3">
+              {posts.map((p) => (
+                <Link to={`/blog/${p.slug}`} className="blog-card" key={p.slug}>
+                  {p.cover_image && (
+                    <div className="blog-card-cover">
+                      <img src={p.cover_image} alt={p.title} loading="lazy" />
+                    </div>
+                  )}
+                  <span className="blog-meta">{p.category || 'Artículo'}</span>
+                  <h3>{p.title}</h3>
+                  {p.excerpt && <p>{p.excerpt}</p>}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </>

@@ -5,7 +5,9 @@ import About from './pages/About';
 import Services from './pages/Services';
 import Portfolio from './pages/Portfolio';
 import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
 import Contact from './pages/Contact';
+import Admin from './pages/Admin';
 
 export default function App() {
   return (
@@ -16,7 +18,9 @@ export default function App() {
         <Route path="/servicios" element={<Services />} />
         <Route path="/portafolio" element={<Portfolio />} />
         <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/contacto" element={<Contact />} />
+        <Route path="/admin" element={<Admin />} />
       </Route>
     </Routes>
   );
