@@ -1,52 +1,27 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-
-const projects = [
-  {
-    cat: 'Desarrollo Web',
-    title: 'Sitio Corporativo a Medida',
-    client: 'Cliente confidencial',
-    label: 'Web',
-    tags: ['React', 'Rendimiento', 'SEO'],
-  },
-  {
-    cat: 'WordPress',
-    title: 'Tienda en Línea WordPress',
-    client: 'Comercio local',
-    label: 'WooCommerce',
-    tags: ['WordPress', 'WooCommerce', 'Optimización'],
-  },
-  {
-    cat: 'Automatización',
-    title: 'Flujo de Automatización de Ventas',
-    client: 'Empresa de servicios',
-    label: 'Automatización',
-    tags: ['APIs', 'CRM', 'Zapier'],
-  },
-  {
-    cat: 'Integraciones',
-    title: 'Integración de Plataformas',
-    client: 'Startup tecnológica',
-    label: 'Integración',
-    tags: ['API REST', 'CRM', 'Bases de datos'],
-  },
-  {
-    cat: 'Inteligencia Artificial',
-    title: 'Asistente Virtual para Atención al Cliente',
-    client: 'Empresa de retail',
-    label: 'Chatbot IA',
-    tags: ['IA', 'Chatbot', 'Automatización'],
-  },
-  {
-    cat: 'Soporte Técnico',
-    title: 'Auditoría y Optimización de Rendimiento',
-    client: 'Sitio institucional',
-    label: 'Soporte',
-    tags: ['Velocidad', 'Seguridad', 'Diagnóstico'],
-  },
-];
+import { listProjects } from '../api/portfolio';
 
 export default function Portfolio() {
   useDocumentTitle('Portafolio | María Sánchez - Messtix');
+  const [projects, setProjects] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [error, setError] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('');
+
+  useEffect(() => {
+    listProjects()
+      .then((res) => {
+        setProjects(res.projects);
+        setCategories(res.categories || []);
+      })
+      .catch(() => setError(true));
+  }, []);
+
+  const filtered = activeCategory
+    ? (projects || []).filter((p) => p.category === activeCategory)
+    : projects;
 
   return (
     <>
@@ -57,28 +32,75 @@ export default function Portfolio() {
           <p className="section-lead">
             Una muestra de soluciones tecnológicas desarrolladas para distintos sectores.
           </p>
+
+          {categories.length > 0 && (
+            <div className="category-filters">
+              <button
+                type="button"
+                className={`category-filter${activeCategory === '' ? ' is-active' : ''}`}
+                onClick={() => setActiveCategory('')}
+              >
+                Todos
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`category-filter${activeCategory === c ? ' is-active' : ''}`}
+                  onClick={() => setActiveCategory(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       <section className="section">
         <div className="container">
-          <div className="grid grid-3">
-            {projects.map((p) => (
-              <div className="port-card" key={p.title}>
-                <div className="port-thumb">{p.label}</div>
-                <div className="port-body">
-                  <span className="port-cat">{p.cat}</span>
-                  <h3>{p.title}</h3>
-                  <p className="port-client">{p.client}</p>
-                  <div className="tags">
-                    {p.tags.map((t) => (
-                      <span key={t}>{t}</span>
-                    ))}
+          {error && <p>No se pudieron cargar los proyectos. Intenta de nuevo más tarde.</p>}
+
+          {!error && projects === null && <p>Cargando proyectos…</p>}
+
+          {!error && projects !== null && filtered.length === 0 && (
+            <p>Todavía no hay proyectos publicados en esta categoría.</p>
+          )}
+
+          {!error && filtered && filtered.length > 0 && (
+            <div className="grid grid-3">
+              {filtered.map((p) => (
+                <Link to={`/portafolio/${p.slug}`} className="port-card" key={p.slug}>
+                  {p.cover_image ? (
+                    <div className="port-thumb-img">
+                      <img src={p.cover_image} alt={p.name} loading="lazy" />
+                    </div>
+                  ) : (
+                    <div className="port-thumb">{p.name}</div>
+                  )}
+                  <div className="port-body">
+                    <span className="port-cat">{p.category}</span>
+                    <h3>{p.name}</h3>
+                    {p.description && <p className="port-desc">{p.description}</p>}
+                    <div className="port-footer">
+                      {p.company && <span className="port-company">{p.company}</span>}
+                      {p.url && (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="port-link"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Ver sitio →
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </>

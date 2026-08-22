@@ -13,8 +13,17 @@ import {
   deletePost,
   uploadImage,
 } from '../api/blog';
+import {
+  adminListProjects,
+  adminGetProject,
+  saveProject,
+  deleteProject,
+  uploadProjectImage,
+} from '../api/portfolio';
 
-function emptyForm(defaultAuthor) {
+const ADMIN_PER_PAGE = 20;
+
+function emptyPostForm(defaultAuthor) {
   return {
     id: '',
     title: '',
@@ -23,6 +32,20 @@ function emptyForm(defaultAuthor) {
     category: '',
     cover_image: '',
     author: defaultAuthor || '',
+    published: false,
+  };
+}
+
+function emptyProjectForm() {
+  return {
+    id: '',
+    name: '',
+    client: '',
+    company: '',
+    url: '',
+    category: '',
+    description: '',
+    cover_image: '',
     published: false,
   };
 }
@@ -87,7 +110,7 @@ function LoginForm({ onLoggedIn }) {
 }
 
 function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
-  const [form, setForm] = useState(initial || emptyForm(defaultAuthor));
+  const [form, setForm] = useState(initial || emptyPostForm(defaultAuthor));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -225,12 +248,204 @@ function PostForm({ initial, defaultAuthor, onSaved, onCancel }) {
   );
 }
 
-const ADMIN_PER_PAGE = 20;
+function ProjectForm({ initial, categories, onSaved, onCancel }) {
+  const [form, setForm] = useState(initial || emptyProjectForm());
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
 
-function Dashboard({ displayName, onDisplayNameChange }) {
+  function set(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function handleImageChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const res = await uploadProjectImage(file);
+      set('cover_image', res.url);
+    } catch {
+      setError('No se pudo subir la imagen. Verifica que sea JPG, PNG o WEBP de menos de 5MB.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+
+    if (uploading) {
+      setError('Espera a que termine de subirse la imagen antes de guardar.');
+      return;
+    }
+
+    if (!form.name.trim() || !form.category) {
+      setError('El nombre del proyecto y la categoría son obligatorios.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await saveProject(form);
+      onSaved();
+    } catch {
+      setError('No se pudo guardar el proyecto. Intenta de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
+      <div>
+        <label htmlFor="p-name">Nombre de Proyecto</label>
+        <input
+          id="p-name"
+          type="text"
+          required
+          maxLength="150"
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="p-client">Cliente</label>
+        <input
+          id="p-client"
+          type="text"
+          maxLength="150"
+          value={form.client}
+          onChange={(e) => set('client', e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="p-company">Empresa</label>
+        <input
+          id="p-company"
+          type="text"
+          maxLength="150"
+          value={form.company}
+          onChange={(e) => set('company', e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="p-url">URL</label>
+        <input
+          id="p-url"
+          type="text"
+          maxLength="300"
+          placeholder="ejemplo.com"
+          value={form.url}
+          onChange={(e) => set('url', e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="p-category">Categoría</label>
+        <select
+          id="p-category"
+          required
+          value={form.category}
+          onChange={(e) => set('category', e.target.value)}
+        >
+          <option value="" disabled>Selecciona una categoría</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="p-description">Descripción</label>
+        <textarea
+          id="p-description"
+          rows="6"
+          maxLength="2000"
+          placeholder="Breve descripción del proyecto"
+          value={form.description}
+          onChange={(e) => set('description', e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="p-image">Imagen</label>
+        <input id="p-image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
+        {uploading && <p>Subiendo imagen…</p>}
+        {form.cover_image && (
+          <img src={form.cover_image} alt="Vista previa" style={{ marginTop: 10, maxWidth: 240, borderRadius: 'var(--radius)' }} />
+        )}
+        {!form.cover_image && (
+          <p style={{ fontSize: '.85rem', marginTop: 6 }}>
+            Sin imagen se mostrará un recuadro de color con el nombre del proyecto.
+          </p>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          id="p-published"
+          type="checkbox"
+          style={{ width: 'auto' }}
+          checked={form.published}
+          onChange={(e) => set('published', e.target.checked)}
+        />
+        <label htmlFor="p-published" style={{ margin: 0 }}>Publicado (visible en el portafolio)</label>
+      </div>
+
+      {error && <p style={{ color: 'var(--vino)' }}>{error}</p>}
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button type="submit" className="btn btn-primary" disabled={saving || uploading}>
+          {saving ? 'Guardando…' : uploading ? 'Subiendo imagen…' : 'Guardar Proyecto'}
+        </button>
+        <button type="button" className="btn btn-outline" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Pagination({ totalPages, currentPage, onGoToPage }) {
+  if (totalPages <= 1) return null;
+  return (
+    <nav className="pagination" aria-label="Paginación">
+      <button
+        type="button"
+        className="pagination-arrow"
+        onClick={() => onGoToPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Página anterior"
+      >
+        ‹
+      </button>
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+        <button
+          key={p}
+          type="button"
+          className={`pagination-page${p === currentPage ? ' is-active' : ''}`}
+          onClick={() => onGoToPage(p)}
+          aria-current={p === currentPage ? 'page' : undefined}
+        >
+          {p}
+        </button>
+      ))}
+      <button
+        type="button"
+        className="pagination-arrow"
+        onClick={() => onGoToPage(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Página siguiente"
+      >
+        ›
+      </button>
+    </nav>
+  );
+}
+
+function BlogPanel({ displayName }) {
   const [posts, setPosts] = useState(null);
   const [editing, setEditing] = useState(null); // null = list, {} = new, post = edit
-  const [panel, setPanel] = useState(null); // null | 'password' | 'name'
   const [page, setPage] = useState(1);
 
   function reload() {
@@ -263,16 +478,12 @@ function Dashboard({ displayName, onDisplayNameChange }) {
     reload();
   }
 
-  async function handleLogout() {
-    await logout();
-    window.location.reload();
-  }
-
   if (editing !== null) {
     return (
-      <div className="container" style={{ paddingTop: 60, paddingBottom: 80 }}>
-        <span className="eyebrow">Admin</span>
-        <h1>{editing.id ? 'Editar Artículo' : 'Nuevo Artículo'}</h1>
+      <div>
+        <h2 className="section-title" style={{ fontSize: '1.6rem' }}>
+          {editing.id ? 'Editar Artículo' : 'Nuevo Artículo'}
+        </h2>
         <PostForm
           initial={editing.id ? editing : null}
           defaultAuthor={displayName}
@@ -287,29 +498,11 @@ function Dashboard({ displayName, onDisplayNameChange }) {
   }
 
   return (
-    <div className="container" style={{ paddingTop: 60, paddingBottom: 80 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <span className="eyebrow">Admin</span>
-          <h1>Artículos del Blog</h1>
-          {displayName && <p style={{ margin: 0 }}>Sesión activa como <strong>{displayName}</strong></p>}
-        </div>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nuevo Artículo</button>
-          <button className="btn btn-outline" onClick={() => setPanel(panel === 'name' ? null : 'name')}>Cambiar Nombre</button>
-          <button className="btn btn-outline" onClick={() => setPanel(panel === 'password' ? null : 'password')}>Cambiar Contraseña</button>
-          <button className="btn btn-outline" onClick={handleLogout}>Salir</button>
-        </div>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <h2 className="section-title" style={{ fontSize: '1.6rem', margin: 0 }}>Artículos del Blog</h2>
+        <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nuevo Artículo</button>
       </div>
-
-      {panel === 'password' && <ChangePasswordForm onDone={() => setPanel(null)} />}
-      {panel === 'name' && (
-        <ChangeNameForm
-          current={displayName}
-          onDone={() => setPanel(null)}
-          onChanged={onDisplayNameChange}
-        />
-      )}
 
       {posts === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
 
@@ -341,40 +534,109 @@ function Dashboard({ displayName, onDisplayNameChange }) {
               </div>
             ))}
           </div>
+          <Pagination totalPages={totalPages} currentPage={currentPage} onGoToPage={goToPage} />
+        </>
+      )}
+    </div>
+  );
+}
 
-          {totalPages > 1 && (
-            <nav className="pagination" aria-label="Paginación de artículos">
-              <button
-                type="button"
-                className="pagination-arrow"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                aria-label="Página anterior"
-              >
-                ‹
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`pagination-page${p === currentPage ? ' is-active' : ''}`}
-                  onClick={() => goToPage(p)}
-                  aria-current={p === currentPage ? 'page' : undefined}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="pagination-arrow"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                aria-label="Página siguiente"
-              >
-                ›
-              </button>
-            </nav>
-          )}
+function PortfolioPanel() {
+  const [projects, setProjects] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [editing, setEditing] = useState(null); // null = list, {} = new, project = edit
+  const [page, setPage] = useState(1);
+
+  function reload() {
+    adminListProjects().then((res) => {
+      setProjects(res.projects);
+      setCategories(res.categories || []);
+    });
+  }
+
+  useEffect(reload, []);
+
+  const totalPages = projects ? Math.max(1, Math.ceil(projects.length / ADMIN_PER_PAGE)) : 1;
+  const currentPage = Math.min(page, totalPages);
+  const pageProjects = projects
+    ? projects.slice((currentPage - 1) * ADMIN_PER_PAGE, currentPage * ADMIN_PER_PAGE)
+    : [];
+
+  function goToPage(p) {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function handleEdit(id) {
+    const res = await adminGetProject(id);
+    setEditing(res.project);
+  }
+
+  async function handleDelete(id, name) {
+    if (!window.confirm(`¿Eliminar el proyecto "${name}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    await deleteProject(id);
+    reload();
+  }
+
+  if (editing !== null) {
+    return (
+      <div>
+        <h2 className="section-title" style={{ fontSize: '1.6rem' }}>
+          {editing.id ? 'Editar Proyecto' : 'Nuevo Proyecto'}
+        </h2>
+        <ProjectForm
+          initial={editing.id ? editing : null}
+          categories={categories}
+          onSaved={() => {
+            setEditing(null);
+            reload();
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <h2 className="section-title" style={{ fontSize: '1.6rem', margin: 0 }}>Proyectos del Portafolio</h2>
+        <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nuevo Proyecto</button>
+      </div>
+
+      {projects === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
+
+      {projects !== null && projects.length === 0 && (
+        <p style={{ marginTop: 32 }}>Todavía no has creado ningún proyecto.</p>
+      )}
+
+      {projects !== null && projects.length > 0 && (
+        <>
+          <p style={{ marginTop: 32, marginBottom: 0, fontSize: '.85rem', color: 'var(--gray-text)' }}>
+            {projects.length} proyecto{projects.length === 1 ? '' : 's'} en total
+          </p>
+          <div className="admin-post-list">
+            {pageProjects.map((p) => (
+              <div className="admin-post-row" key={p.id}>
+                <div>
+                  <strong>{p.name}</strong>
+                  <span className={`admin-status ${p.published ? 'is-published' : 'is-draft'}`}>
+                    {p.published ? 'Publicado' : 'Borrador'}
+                  </span>
+                  <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>
+                    {p.category} · {p.company || 'Sin empresa'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn-ghost" onClick={() => handleEdit(p.id)}>Editar</button>
+                  <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(p.id, p.name)}>Eliminar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Pagination totalPages={totalPages} currentPage={currentPage} onGoToPage={goToPage} />
         </>
       )}
     </div>
@@ -463,6 +725,67 @@ function ChangeNameForm({ current, onDone, onChanged }) {
         <button type="button" className="btn btn-outline" onClick={onDone}>Cerrar</button>
       </div>
     </form>
+  );
+}
+
+function Dashboard({ displayName, onDisplayNameChange }) {
+  const [section, setSection] = useState('blog'); // 'blog' | 'portfolio'
+  const [panel, setPanel] = useState(null); // null | 'password' | 'name'
+
+  async function handleLogout() {
+    await logout();
+    window.location.reload();
+  }
+
+  return (
+    <div className="container" style={{ paddingTop: 60, paddingBottom: 80 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <span className="eyebrow">Admin</span>
+          <h1>Panel de Administración</h1>
+          {displayName && <p style={{ margin: 0 }}>Sesión activa como <strong>{displayName}</strong></p>}
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button className="btn btn-outline" onClick={() => setPanel(panel === 'name' ? null : 'name')}>Cambiar Nombre</button>
+          <button className="btn btn-outline" onClick={() => setPanel(panel === 'password' ? null : 'password')}>Cambiar Contraseña</button>
+          <button className="btn btn-outline" onClick={handleLogout}>Salir</button>
+        </div>
+      </div>
+
+      {panel === 'password' && <ChangePasswordForm onDone={() => setPanel(null)} />}
+      {panel === 'name' && (
+        <ChangeNameForm
+          current={displayName}
+          onDone={() => setPanel(null)}
+          onChanged={onDisplayNameChange}
+        />
+      )}
+
+      <div className="category-filters" style={{ marginTop: 32 }}>
+        <button
+          type="button"
+          className={`category-filter${section === 'blog' ? ' is-active' : ''}`}
+          onClick={() => setSection('blog')}
+        >
+          Blog
+        </button>
+        <button
+          type="button"
+          className={`category-filter${section === 'portfolio' ? ' is-active' : ''}`}
+          onClick={() => setSection('portfolio')}
+        >
+          Portafolio
+        </button>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        {section === 'blog' ? (
+          <BlogPanel displayName={displayName} />
+        ) : (
+          <PortfolioPanel />
+        )}
+      </div>
+    </div>
   );
 }
 
