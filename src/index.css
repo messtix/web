@@ -593,11 +593,22 @@ footer a:hover{color:var(--vino);}
   display:flex;flex-direction:column;align-items:center;gap:14px;
   max-width:90vw;max-height:88vh;
 }
+#lightbox .lightbox-img-wrap{
+  max-width:90vw;max-height:76vh;
+  overflow:hidden;
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+}
+#lightbox .lightbox-img-wrap.is-zoomed{cursor:grab;touch-action:none;}
+#lightbox .lightbox-img-wrap.is-zoomed:active{cursor:grabbing;}
 #lightbox .lightbox-img{
   max-width:90vw;max-height:76vh;
   border-radius:4px;
   box-shadow:0 20px 60px rgba(0,0,0,.5);
   object-fit:contain;
+  transition:transform .2s ease;
+  user-select:none;
+  -webkit-user-drag:none;
 }
 #lightbox .lightbox-panel{
   display:none;
