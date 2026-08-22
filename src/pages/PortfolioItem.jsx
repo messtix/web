@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { getProject } from '../api/portfolio';
+import Lightbox from '../components/Lightbox';
 
 export default function PortfolioItem() {
   const { slug } = useParams();
   const [project, setProject] = useState(null);
   const [status, setStatus] = useState('loading'); // loading | ok | not_found | error
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useDocumentTitle(
     project ? `${project.name} | Portafolio Messtix` : 'Portafolio | María Sánchez - Messtix'
@@ -74,9 +76,14 @@ export default function PortfolioItem() {
         <div className="container">
           <article className="post-article">
             {project.cover_image ? (
-              <div className="port-detail-cover-wrap">
+              <button
+                type="button"
+                className="port-detail-cover-wrap port-detail-cover-btn"
+                onClick={() => setLightboxOpen(true)}
+                aria-label="Ampliar imagen"
+              >
                 <img className="port-detail-cover" src={project.cover_image} alt={project.name} />
-              </div>
+              </button>
             ) : (
               <div className="port-detail-placeholder">{project.name}</div>
             )}
@@ -120,6 +127,15 @@ export default function PortfolioItem() {
           </p>
         </div>
       </section>
+
+      {lightboxOpen && project.cover_image && (
+        <Lightbox
+          items={[{ img: project.cover_image, alt: project.name }]}
+          index={0}
+          onClose={() => setLightboxOpen(false)}
+          onNavigate={() => {}}
+        />
+      )}
     </>
   );
 }
