@@ -586,15 +586,15 @@ footer a:hover{color:var(--vino);}
   background:rgba(10,9,9,.9);
   z-index:300;
   align-items:center;justify-content:center;
-  padding:32px;
+  padding:16px;
   cursor:zoom-out;
 }
 #lightbox .lightbox-content{
   display:flex;flex-direction:column;align-items:center;gap:14px;
-  max-width:90vw;max-height:88vh;
+  max-width:98vw;max-height:96vh;
 }
 #lightbox .lightbox-img-wrap{
-  max-width:90vw;max-height:76vh;
+  max-width:98vw;max-height:84vh;
   overflow:hidden;
   border-radius:4px;
   display:flex;align-items:center;justify-content:center;
@@ -602,7 +602,7 @@ footer a:hover{color:var(--vino);}
 #lightbox .lightbox-img-wrap.is-zoomed{cursor:grab;touch-action:none;}
 #lightbox .lightbox-img-wrap.is-zoomed:active{cursor:grabbing;}
 #lightbox .lightbox-img{
-  max-width:90vw;max-height:76vh;
+  max-width:98vw;max-height:84vh;
   border-radius:4px;
   box-shadow:0 20px 60px rgba(0,0,0,.5);
   object-fit:contain;
@@ -626,7 +626,7 @@ footer a:hover{color:var(--vino);}
 #lightbox .lightbox-zoom-controls button:hover{background:rgba(255,255,255,.22);}
 #lightbox .lightbox-panel{
   display:none;
-  max-width:90vw;max-height:76vh;
+  max-width:90vw;max-height:84vh;
   border-radius:4px;
   box-shadow:0 20px 60px rgba(0,0,0,.5);
   background:linear-gradient(135deg,var(--black),var(--vino-dark));
