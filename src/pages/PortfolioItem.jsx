@@ -74,7 +74,9 @@ export default function PortfolioItem() {
         <div className="container">
           <article className="post-article">
             {project.cover_image ? (
-              <img className="port-detail-cover" src={project.cover_image} alt={project.name} />
+              <div className="port-detail-cover-wrap">
+                <img className="port-detail-cover" src={project.cover_image} alt={project.name} />
+              </div>
             ) : (
               <div className="port-detail-placeholder">{project.name}</div>
             )}
