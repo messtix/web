@@ -21,12 +21,14 @@ const steps = [
 ];
 
 const events = [
+  { alt: 'Maracaibo WordPress MeetUp: WooCommerce en Acción Estrategias y Tendencias', img: '/img/eventos/maracaibo-woocommerce-accion-estrategias-tendencias.jpg' },
   { alt: 'Workshop: El poder de una web optimizada en zuWebFest22', img: '/img/eventos/poder-web-optimizada-zuwebfest22.jpg' },
   { alt: 'Foro: ¿Cómo vivir de WordPress? en zuWebFest21', img: '/img/eventos/foro-como-vivir-de-wordpress-zuwebfest21.jpg' },
   { alt: 'Las 7 Claves del Éxito en WordPress en #WCVenezuela2021', img: '/img/eventos/wcvenezuela2021-7-claves-exito-wordpress.jpg' },
   { alt: 'Workshop: ¿Cómo hacer una tienda online con WooCommerce? en zuWebFest20', img: '/img/eventos/woocommerce-zuwebfest20.jpg' },
   { alt: 'Workshop: WordPress Tabú - El placer de una web segura en zuWebFest19', img: '/img/eventos/wordpress-tabu-zuwebfest19.jpg' },
   { alt: 'MeetUp Mujeres en Tecnología: Comercio Electrónico Femenino', img: '/img/eventos/meetup-mujeres-tecnologia.jpg' },
+  { alt: 'ZuMeet: Todo cambió, incluso la web', img: '/img/eventos/zumeet-todo-cambio-incluso-la-web.jpg' },
   { alt: 'MeetUp de Emprendedores: Chatbots (Inteligencia Artificial) y Atención al Cliente', img: '/img/eventos/meetup-chatbots.jpg' },
   { alt: 'Maracaibo WordPress MeetUp: Las 12 claves del éxito en WordPress', img: '/img/eventos/maracaibo-wordpress-meetup.jpg' },
 ];
