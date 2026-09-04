@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import Logo from './Logo';
 import SocialLinks from './SocialLinks';
 import ThemeToggle from './ThemeToggle';
+import useTheme from '../hooks/useTheme';
 
 const links = [
   { to: '/', label: 'Inicio' },
@@ -15,12 +16,13 @@ const links = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="site-header">
       <nav className="nav">
         <NavLink to="/" className="logo" onClick={() => setOpen(false)}>
-          <Logo />
+          <Logo variant={theme === 'dark' ? 'light' : 'dark'} />
         </NavLink>
         <ul className={`nav-links${open ? ' open' : ''}`}>
           {links.map((link) => (
@@ -34,7 +36,7 @@ export default function Header() {
             <SocialLinks />
           </li>
           <li>
-            <ThemeToggle />
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </li>
           <li className="nav-cta">
             <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer" className="btn btn-primary">
@@ -43,7 +45,7 @@ export default function Header() {
           </li>
         </ul>
         <div className="nav-right-mobile">
-          <ThemeToggle />
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <button
             className="nav-toggle"
             aria-label="Abrir menú"
