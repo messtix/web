@@ -126,6 +126,14 @@ p{margin:0 0 1em;color:var(--text-soft);text-align:justify;}
 .btn:active{transform:translateY(0);}
 .btn-primary{background:var(--vino);color:var(--white);}
 .btn-primary:hover{background:var(--vino-dark);box-shadow:0 10px 24px -8px rgba(122,17,40,.55);}
+:root[data-theme="dark"] .cta-band .btn-primary,
+:root[data-theme="dark"] .hero .btn-primary{
+  background:var(--black);border-color:rgba(255,255,255,.14);
+}
+:root[data-theme="dark"] .cta-band .btn-primary:hover,
+:root[data-theme="dark"] .hero .btn-primary:hover{
+  background:#000;box-shadow:0 10px 24px -8px rgba(0,0,0,.6);
+}
 .btn-outline{border-color:var(--text);color:var(--text);background:transparent;}
 .btn-outline:hover{background:var(--text);color:var(--bg);box-shadow:0 10px 24px -10px rgba(20,18,18,.4);}
 .btn-outline-invert{border-color:#fff;color:#fff;background:transparent;}
