@@ -1,23 +1,25 @@
 import { useState } from 'react';
 import Lightbox from '../components/Lightbox';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import Icon from '../components/Icon';
+import Reveal from '../components/Reveal';
 
 const skills = [
-  'Arquitectura Web',
-  'Optimización de Rendimiento',
-  'Integraciones API',
-  'Asistentes Virtuales',
-  'Automatización de Procesos',
-  'SEO Técnico',
-  'Seguridad Web',
-  'Servidores y Hosting',
+  { icon: 'architecture', label: 'Arquitectura Web' },
+  { icon: 'performance', label: 'Optimización de Rendimiento' },
+  { icon: 'api', label: 'Integraciones API' },
+  { icon: 'ai', label: 'Asistentes Virtuales' },
+  { icon: 'automation', label: 'Automatización de Procesos' },
+  { icon: 'seo', label: 'SEO Técnico' },
+  { icon: 'security', label: 'Seguridad Web' },
+  { icon: 'server', label: 'Servidores y Hosting' },
 ];
 
 const steps = [
-  { num: '01', title: 'Analizar', desc: 'Estudio el problema del negocio a fondo.' },
-  { num: '02', title: 'Diseñar', desc: 'Diseño la solución tecnológica ideal.' },
-  { num: '03', title: 'Implementar', desc: 'Desarrollo e implemento la solución.' },
-  { num: '04', title: 'Optimizar', desc: 'Monitoreo y mejoro continuamente.' },
+  { num: '01', icon: 'analyze', title: 'Analizar', desc: 'Estudio el problema del negocio a fondo.' },
+  { num: '02', icon: 'design', title: 'Diseñar', desc: 'Diseño la solución tecnológica ideal.' },
+  { num: '03', icon: 'build', title: 'Implementar', desc: 'Desarrollo e implemento la solución.' },
+  { num: '04', icon: 'optimize', title: 'Optimizar', desc: 'Monitoreo y mejoro continuamente.' },
 ];
 
 const events = [
@@ -75,9 +77,12 @@ export default function About() {
         <div className="container">
           <span className="eyebrow">Habilidades</span>
           <h2 className="section-title">Experiencia y Competencias</h2>
-          <div className="pills" style={{ marginTop: 32 }}>
-            {skills.map((s) => (
-              <span className="pill" key={s}>{s}</span>
+          <div className="skills-grid" style={{ marginTop: 32 }}>
+            {skills.map((s, i) => (
+              <Reveal className="skill-card" delay={i * 50} key={s.label}>
+                <span className="icon-badge icon-badge-outline"><Icon name={s.icon} /></span>
+                <span>{s.label}</span>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -88,13 +93,14 @@ export default function About() {
           <span className="eyebrow">Metodología</span>
           <h2 className="section-title">Enfoque de Trabajo</h2>
           <p className="section-lead">Un proceso claro y estructurado para cada proyecto.</p>
-          <div className="steps" style={{ marginTop: 40 }}>
-            {steps.map((s) => (
-              <div className="step" key={s.num}>
+          <div className="steps" style={{ marginTop: 48 }}>
+            {steps.map((s, i) => (
+              <Reveal className="step" delay={i * 80} key={s.num}>
+                <span className="step-badge"><Icon name={s.icon} /></span>
                 <span className="num">{s.num}</span>
                 <h3>{s.title}</h3>
                 <p>{s.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
