@@ -14,7 +14,7 @@
 
   /* Theme-aware surface tokens (flip under [data-theme="dark"]) */
   --bg:var(--white);
-  --bg-alt:var(--gray-soft);
+  --bg-alt:#f3ecee;
   --surface:var(--white);
   --text:var(--black);
   --text-soft:var(--gray-text);
@@ -26,11 +26,11 @@
 
 :root[data-theme="dark"]{
   --bg:#121012;
-  --bg-alt:#1b181a;
-  --surface:#1f1c1f;
+  --bg-alt:#221c20;
+  --surface:#241f22;
   --text:#f4efed;
   --text-soft:#b7afac;
-  --border:#332e2f;
+  --border:#393233;
   --header-bg:rgba(18,16,18,.82);
   --dot-color:rgba(255,255,255,.09);
   --shadow-soft:0 18px 40px -20px rgba(0,0,0,.6);
@@ -87,7 +87,20 @@ p{margin:0 0 1em;color:var(--text-soft);text-align:justify;}
   margin-bottom:.75em;
 }
 .section{padding:88px 0;}
-.section-alt{background:var(--bg-alt);}
+.section-alt{
+  position:relative;
+  background:var(--bg-alt);
+  box-shadow:inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border);
+}
+.section-alt::before{
+  content:"";
+  position:absolute;inset:0;
+  background:
+    radial-gradient(560px circle at 92% 0%, rgba(122,17,40,.10), transparent 60%),
+    radial-gradient(480px circle at 4% 100%, rgba(122,17,40,.08), transparent 55%);
+  pointer-events:none;
+}
+.section-alt > .container{position:relative;}
 .section-title{font-size:2.1rem;margin-bottom:.35em;}
 .section-lead{max-width:620px;color:var(--text-soft);}
 
@@ -516,7 +529,8 @@ footer .social-links a:hover{color:var(--vino);}
 .step:hover .step-badge{transform:scale(1.08) rotate(-4deg);}
 .step .num{
   position:absolute;top:20px;right:20px;
-  font-family:var(--serif);font-size:1.3rem;color:var(--border);
+  font-family:var(--serif);font-size:1.4rem;font-weight:600;
+  color:var(--vino);opacity:.4;
 }
 .step p{text-align:left;margin:0;}
 
@@ -653,10 +667,14 @@ form{display:flex;flex-direction:column;gap:16px;}
 label{font-size:.85rem;font-weight:600;margin-bottom:6px;display:block;}
 input,textarea,select{
   width:100%;padding:13px 14px;border:1px solid var(--border);
-  border-radius:var(--radius);font-family:var(--sans);font-size:.95rem;
+  border-radius:var(--radius-sm);font-family:var(--sans);font-size:.95rem;
   background:var(--surface);color:var(--text);
+  transition:border-color .2s ease, box-shadow .2s ease;
 }
-input:focus,textarea:focus,select:focus{outline:2px solid var(--vino);outline-offset:1px;border-color:var(--vino);}
+input:focus,textarea:focus,select:focus{
+  outline:none;border-color:var(--vino);
+  box-shadow:0 0 0 4px rgba(122,17,40,.14);
+}
 input[type="checkbox"]{width:auto;padding:0;}
 input[type="file"]{
   width:auto;padding:8px 0;border:none;
@@ -666,13 +684,39 @@ input[type="file"]{
   position:absolute;left:-9999px;top:auto;
   width:1px;height:1px;overflow:hidden;
 }
+.contact-form .btn-primary{align-self:flex-start;margin-top:6px;}
+.contact-form .btn-primary svg{width:16px;height:16px;}
+
+.form-success{
+  border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--surface);padding:40px 32px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.form-success .icon-badge{margin-bottom:6px;}
+.form-success h3{margin-bottom:.1em;}
+.form-success p{margin:0;}
+
 .contact-info-card{
+  position:relative;overflow:hidden;
   background:var(--bg-alt);border:1px solid var(--border);
-  border-radius:var(--radius);padding:30px;
+  border-radius:var(--radius);padding:32px;
+  box-shadow:var(--shadow-soft);
+}
+.contact-info-blob{
+  position:absolute;top:-60px;right:-60px;
+  width:180px;height:180px;border-radius:50%;
+  background:var(--vino);opacity:.14;filter:blur(40px);
+  pointer-events:none;
 }
 .contact-info-card h4{font-size:.95rem;margin-bottom:.2em;}
-.contact-info-card .row{padding:18px 0;border-bottom:1px solid var(--border);}
+.contact-info-card .row{
+  position:relative;
+  display:flex;align-items:flex-start;gap:16px;
+  padding:18px 0;border-bottom:1px solid var(--border);
+}
 .contact-info-card .row:last-child{border-bottom:none;}
+.contact-info-card .row .icon-badge{flex-shrink:0;width:42px;height:42px;margin-bottom:0;}
+.contact-info-card .row .icon-badge svg{width:20px;height:20px;}
 .contact-info-card a{color:var(--vino);font-weight:600;}
 
 /* Footer */

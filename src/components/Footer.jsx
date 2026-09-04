@@ -14,7 +14,6 @@ export default function Footer() {
             <p style={{ marginTop: 12, maxWidth: 280 }}>
               Desarrollo web, soporte y automatización con IA, adaptados a lo que necesitas.
             </p>
-            <SocialLinks />
           </div>
           <div>
             <h4>Navegación</h4>
@@ -31,6 +30,7 @@ export default function Footer() {
               <li><a href="mailto:info@messtix.com">info@messtix.com</a></li>
               <li><Link to="/contacto">Formulario</Link></li>
             </ul>
+            <SocialLinks />
           </div>
         </div>
         <div className="footer-bottom">

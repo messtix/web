@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import SocialLinks from '../components/SocialLinks';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import Icon from '../components/Icon';
 
 export default function Contact() {
   useDocumentTitle('Contacto | María Sánchez - Messtix');
@@ -48,9 +49,13 @@ export default function Contact() {
         <div className="container contact-grid">
           <div>
             {status === 'sent' ? (
-              <p>Gracias por tu mensaje. Te responderé pronto.</p>
+              <div className="form-success">
+                <span className="icon-badge icon-badge-outline"><Icon name="send" /></span>
+                <h3>¡Mensaje enviado!</h3>
+                <p>Gracias por escribirme. Te responderé pronto.</p>
+              </div>
             ) : (
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="contact-form">
                 <div className="honeypot-field" aria-hidden="true">
                   <label htmlFor="company">No llenar este campo</label>
                   <input
@@ -74,6 +79,7 @@ export default function Contact() {
                   <textarea id="message" name="message" rows="6" required maxLength="5000" placeholder="Cuéntame sobre tu proyecto"></textarea>
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={status === 'sending'}>
+                  <Icon name="send" />
                   {status === 'sending' ? 'Enviando…' : 'Enviar Mensaje'}
                 </button>
                 {status === 'error' && (
@@ -86,20 +92,30 @@ export default function Contact() {
             )}
           </div>
           <div className="contact-info-card">
+            <span className="contact-info-blob"></span>
             <h4>Información de Contacto</h4>
             <div className="row">
-              <h4>Correo</h4>
-              <a href="mailto:info@messtix.com">info@messtix.com</a>
+              <span className="icon-badge icon-badge-outline"><Icon name="mail" /></span>
+              <div>
+                <h4>Correo</h4>
+                <a href="mailto:info@messtix.com">info@messtix.com</a>
+              </div>
             </div>
             <div className="row">
-              <h4>Asesoría Gratuita</h4>
-              <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer">
-                Agendar en Calendly
-              </a>
+              <span className="icon-badge icon-badge-outline"><Icon name="calendar" /></span>
+              <div>
+                <h4>Asesoría Gratuita</h4>
+                <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer">
+                  Agendar en Calendly
+                </a>
+              </div>
             </div>
             <div className="row">
-              <h4>Redes Sociales</h4>
-              <SocialLinks />
+              <span className="icon-badge icon-badge-outline"><Icon name="share" /></span>
+              <div>
+                <h4>Redes Sociales</h4>
+                <SocialLinks />
+              </div>
             </div>
           </div>
         </div>
