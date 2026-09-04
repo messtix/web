@@ -66,7 +66,7 @@ export default function About() {
             </p>
           </div>
           <div className="avatar-ring">
-            <img src="/img/maria-sanchez.jpg" alt="María Sánchez" />
+            <img src="/img/maria-sanchez-2.jpg" alt="María Sánchez" />
           </div>
         </div>
       </section>

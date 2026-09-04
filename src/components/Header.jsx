@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import Logo from './Logo';
 import SocialLinks from './SocialLinks';
+import ThemeToggle from './ThemeToggle';
 
 const links = [
   { to: '/', label: 'Inicio' },
@@ -32,21 +33,27 @@ export default function Header() {
           <li className="header-social">
             <SocialLinks />
           </li>
+          <li>
+            <ThemeToggle />
+          </li>
           <li className="nav-cta">
             <a href="https://calendly.com/messtix" target="_blank" rel="noreferrer" className="btn btn-primary">
               Asesoría Gratis
             </a>
           </li>
         </ul>
-        <button
-          className="nav-toggle"
-          aria-label="Abrir menú"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+        <div className="nav-right-mobile">
+          <ThemeToggle />
+          <button
+            className="nav-toggle"
+            aria-label="Abrir menú"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
       </nav>
     </header>
   );

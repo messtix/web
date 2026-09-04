@@ -2,21 +2,23 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import { listPosts } from '../api/blog';
+import Icon from '../components/Icon';
+import Reveal from '../components/Reveal';
 
 const specialties = [
-  { num: '01', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables.' },
-  { num: '02', title: 'Automatización de Procesos', desc: 'Flujos de trabajo automatizados.' },
-  { num: '03', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas.' },
-  { num: '04', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente.' },
-  { num: '05', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web.' },
+  { icon: 'code', title: 'Desarrollo Web', desc: 'Sitios web modernos, rápidos y escalables.' },
+  { icon: 'automation', title: 'Automatización de Procesos', desc: 'Flujos de trabajo automatizados.' },
+  { icon: 'link', title: 'Integraciones CRM', desc: 'Conexión entre plataformas y sistemas.' },
+  { icon: 'ai', title: 'Asistentes Virtuales IA', desc: 'Chatbots inteligentes para atención al cliente.' },
+  { icon: 'support', title: 'Soporte Técnico', desc: 'Diagnóstico y solución de problemas web.' },
 ];
 
 const problems = [
-  { title: 'Sitios web lentos', desc: 'Optimización de rendimiento y velocidad de carga.' },
-  { title: 'Procesos manuales repetitivos', desc: 'Automatización para ahorrar tiempo y recursos.' },
-  { title: 'Falta de automatización', desc: 'Implementación de flujos automáticos.' },
-  { title: 'Sistemas desconectados', desc: 'Integración de plataformas mediante APIs.' },
-  { title: 'Errores técnicos constantes', desc: 'Auditorías y soluciones técnicas especializadas.' },
+  { icon: 'speed', title: 'Sitios web lentos', desc: 'Optimización de rendimiento y velocidad de carga.' },
+  { icon: 'repeat', title: 'Procesos manuales repetitivos', desc: 'Automatización para ahorrar tiempo y recursos.' },
+  { icon: 'gears', title: 'Falta de automatización', desc: 'Implementación de flujos automáticos.' },
+  { icon: 'network', title: 'Sistemas desconectados', desc: 'Integración de plataformas mediante APIs.' },
+  { icon: 'bug', title: 'Errores técnicos constantes', desc: 'Auditorías y soluciones técnicas especializadas.' },
 ];
 
 export default function Home() {
@@ -51,6 +53,37 @@ export default function Home() {
               </a>
             </div>
           </div>
+
+          <div className="hero-visual" aria-hidden="true">
+            <span className="blob blob-1"></span>
+            <span className="blob blob-2"></span>
+
+            <div className="mock-chip mock-chip-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Código limpio
+            </div>
+            <div className="mock-chip mock-chip-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Automatización
+            </div>
+            <div className="mock-chip mock-chip-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M12 3v2M12 19v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M3 12h2M19 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5" strokeLinecap="round" /></svg>
+              IA Aplicada
+            </div>
+
+            <div className="mock-window">
+              <div className="mock-window-bar">
+                <span></span><span></span><span></span>
+              </div>
+              <div className="mock-window-body">
+                <div className="mock-line w-45"></div>
+                <div className="mock-line w-90"></div>
+                <div className="mock-line w-70"></div>
+                <div className="mock-line w-45"></div>
+                <div className="mock-line w-90"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -62,12 +95,12 @@ export default function Home() {
             Soluciones tecnológicas integrales para impulsar tu negocio digital.
           </p>
           <div className="grid grid-3" style={{ marginTop: 40 }}>
-            {specialties.map((s) => (
-              <div className="card" key={s.num}>
-                <span className="num">{s.num}</span>
+            {specialties.map((s, i) => (
+              <Reveal className="card" delay={i * 60} key={s.title}>
+                <span className="icon-badge"><Icon name={s.icon} /></span>
                 <h3>{s.title}</h3>
                 <p>{s.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -81,11 +114,12 @@ export default function Home() {
             Identifico y soluciono los problemas técnicos que frenan tu negocio.
           </p>
           <div className="grid grid-3" style={{ marginTop: 40 }}>
-            {problems.map((p) => (
-              <div className="problem-card" key={p.title}>
+            {problems.map((p, i) => (
+              <Reveal className="problem-card" delay={i * 60} key={p.title}>
+                <span className="icon-badge icon-badge-outline"><Icon name={p.icon} /></span>
                 <h3>{p.title}</h3>
                 <p>{p.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
