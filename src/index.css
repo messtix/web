@@ -354,10 +354,11 @@ footer .social-links a:hover{color:var(--vino-text);}
     display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
     gap:12px;height:auto;min-height:0;padding:8px 0 4px;
   }
-  .mock-chip{position:static;animation:none;}
+  .mock-chip{position:static;}
   .hero-visual .mock-window{
-    position:static;transform:none;animation:none;
+    position:static;transform:none;
     width:100%;max-width:300px;order:5;margin-top:6px;
+    animation:heroFloat 7s ease-in-out infinite;
   }
 }
 @media(max-width:540px){
