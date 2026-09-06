@@ -349,10 +349,19 @@ footer .social-links a:hover{color:var(--vino-text);}
   .hero-visual .blob,.mock-window,.mock-chip{animation:none;}
 }
 @media(max-width:960px){.hero-visual{height:auto;min-height:380px;padding:20px 0;}}
+@media(max-width:640px){
+  .hero-visual{
+    display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+    gap:12px;height:auto;min-height:0;padding:8px 0 4px;
+  }
+  .mock-chip{position:static;animation:none;}
+  .hero-visual .mock-window{
+    position:static;transform:none;animation:none;
+    width:100%;max-width:300px;order:5;margin-top:6px;
+  }
+}
 @media(max-width:540px){
   .mock-chip{padding:7px 12px;font-size:.72rem;}
-  .mock-chip-1,.mock-chip-2{top:-4px;}
-  .mock-chip-3,.mock-chip-4{bottom:-4px;}
 }
 
 /* ===== Cards / Grids ===== */
