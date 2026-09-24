@@ -14,12 +14,6 @@ define('LOGIN_ATTEMPTS_FILE', DATA_DIR . '/files-login-attempts.json');
 define('UPLOAD_DIR', __DIR__ . '/files/uploads');
 define('GUIDES_DIR', __DIR__ . '/files/guias');
 
-// Fixed participant credentials for the shared resource directory.
-// Not stored in a data file, so there is nothing here that a fresh
-// static-file re-deploy could ever overwrite or lose.
-const PARTICIPANT_USERNAME = 'participante';
-const PARTICIPANT_PASSWORD_HASH = '$2y$12$2Ye1o1Izz5Pu8dDzsZBo5uPKhcTQtVpTHY/d79l.87KbQBFMoSwxW';
-
 function fail($code, $error) {
     http_response_code($code);
     echo json_encode(['ok' => false, 'error' => $error]);
@@ -33,16 +27,6 @@ function is_admin_logged_in() {
 
 function require_admin() {
     if (!is_admin_logged_in()) {
-        fail(401, 'unauthorized');
-    }
-}
-
-function is_participant_logged_in() {
-    return !empty($_SESSION['archivos_participant']);
-}
-
-function require_participant() {
-    if (!is_participant_logged_in() && !is_admin_logged_in()) {
         fail(401, 'unauthorized');
     }
 }
@@ -89,8 +73,8 @@ function write_guides($guides) {
 
 /**
  * Simple rate limiter shared shape with blog-api.php: max attempts per
- * window per IP, keyed by a hashed IP + a namespace so admin and
- * participant login attempts don't share the same bucket.
+ * window per IP, keyed by a hashed IP + a namespace so different kinds
+ * of login attempts don't share the same bucket.
  */
 function rate_limited($ip, $namespace, $limit = 10, $window = 900) {
     if (!is_dir(DATA_DIR) && !@mkdir(DATA_DIR, 0755, true)) {
@@ -164,12 +148,29 @@ function normalize_url($url) {
     return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
 }
 
+function slugify($text) {
+    $text = trim((string) $text);
+    if (function_exists('iconv')) {
+        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT', $text);
+        if ($converted !== false) {
+            $text = $converted;
+        }
+    }
+    $text = strtolower($text);
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text);
+    return trim($text, '-');
+}
+
 /**
  * Validates an uploaded file against the shared allow-list and moves it
- * into $dir, keeping its original file name (sanitized) so the link a
- * visitor downloads matches what was uploaded, instead of a random
- * token. A numeric suffix is appended only if that name is already
- * taken in the destination directory.
+ * into $dir under a filesystem-safe (deduplicated) name, returning both
+ * that stored name and the sanitized original name so callers can offer
+ * a download that looks exactly like what was uploaded even when the
+ * on-disk name had to change to avoid a collision. The 'original'
+ * name returned keeps the exact uploaded file name (just stripped of
+ * path separators/control characters) so a download can present it
+ * byte-for-byte as it was uploaded, even though the file on disk uses
+ * a filesystem-safe, deduplicated name.
  */
 function store_uploaded_file($file, $dir, $maxBytes) {
     if (empty($file) || $file['error'] !== UPLOAD_ERR_OK) {
@@ -192,6 +193,21 @@ function store_uploaded_file($file, $dir, $maxBytes) {
     }
 
     $ext = ALLOWED_MIME_TYPES[$mime];
+
+    // True original name: just basename() to drop any path, strip
+    // control characters/null bytes, and cap the length. Spaces and
+    // accents are kept as-is.
+    $trueOriginal = basename((string) $file['name']);
+    $trueOriginal = preg_replace('/[\x00-\x1F\x7F]/u', '', $trueOriginal) ?? $trueOriginal;
+    $trueOriginal = trim($trueOriginal);
+    if ($trueOriginal === '' || $trueOriginal === '.' || $trueOriginal === '..') {
+        $trueOriginal = 'archivo.' . $ext;
+    }
+    if (mb_strlen($trueOriginal) > 150) {
+        $trueOriginal = mb_substr(pathinfo($trueOriginal, PATHINFO_FILENAME), 0, 140) . '.' . $ext;
+    }
+
+    // Filesystem-safe name used for the actual file on disk.
     $base = pathinfo($file['name'], PATHINFO_FILENAME);
     $base = preg_replace('/[^A-Za-z0-9_\- ]+/', '', $base);
     $base = trim(preg_replace('/\s+/', '-', $base), '-');
@@ -211,55 +227,46 @@ function store_uploaded_file($file, $dir, $maxBytes) {
         fail(500, 'move_failed');
     }
 
-    return $filename;
+    return ['stored' => $filename, 'original' => $trueOriginal];
+}
+
+function unlocked_session_key($folderId) {
+    return 'unlocked_folder_' . $folderId;
+}
+
+function is_folder_unlocked($folderId) {
+    return is_admin_logged_in() || !empty($_SESSION[unlocked_session_key($folderId)]);
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
-// ---- Participant: login ----
-if ($method === 'POST' && $action === 'participant_login') {
-    if (rate_limited(client_ip(), 'participant', 10, 900)) {
-        fail(429, 'rate_limited');
-    }
-
-    $username = trim((string) ($_POST['username'] ?? ''));
-    $password = (string) ($_POST['password'] ?? '');
-
-    $validUser = hash_equals(PARTICIPANT_USERNAME, $username);
-    $validPass = password_verify($password, PARTICIPANT_PASSWORD_HASH);
-
-    if (!$validUser || !$validPass) {
-        fail(401, 'invalid_credentials');
-    }
-
-    session_regenerate_id(true);
-    $_SESSION['archivos_participant'] = true;
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ---- Participant: logout ----
-if ($method === 'POST' && $action === 'participant_logout') {
-    unset($_SESSION['archivos_participant']);
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ---- Participant/Admin: session check ----
-if ($method === 'GET' && $action === 'check') {
-    echo json_encode([
-        'ok' => true,
-        'loggedIn' => is_participant_logged_in() || is_admin_logged_in(),
-    ]);
-    exit;
-}
-
-// ---- Participant (or admin): list resources (flat; folders are built client-side) ----
+// ---- Public: list resources inside a folder (or the root when folder_id is empty) ----
 if ($method === 'GET' && $action === 'list') {
-    require_participant();
+    $folderId = trim((string) ($_GET['folder_id'] ?? ''));
+    $folderId = $folderId === '' ? null : $folderId;
+
     $resources = read_json_file(RESOURCES_FILE, []);
-    usort($resources, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
+
+    if ($folderId !== null) {
+        $folder = null;
+        foreach ($resources as $r) {
+            if ($r['id'] === $folderId && $r['type'] === 'folder') {
+                $folder = $r;
+                break;
+            }
+        }
+        if ($folder === null) {
+            fail(404, 'not_found');
+        }
+        if (!empty($folder['username']) && !is_folder_unlocked($folderId)) {
+            fail(401, 'locked');
+        }
+    }
+
+    $items = array_values(array_filter($resources, fn($r) => ($r['parent_id'] ?? null) === $folderId));
+    usort($items, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
+
     $summaries = array_map(function ($r) {
         return [
             'id' => $r['id'],
@@ -268,18 +275,89 @@ if ($method === 'GET' && $action === 'list') {
             'type' => $r['type'],
             'url' => $r['url'],
             'parent_id' => $r['parent_id'] ?? null,
+            'has_password' => $r['type'] === 'folder' ? !empty($r['username']) : false,
         ];
-    }, $resources);
+    }, $items);
+
     echo json_encode(['ok' => true, 'resources' => $summaries]);
     exit;
 }
 
-// ---- Admin: list all resources (same data, kept separate for clarity) ----
+// ---- Public: unlock a password-protected folder ----
+if ($method === 'POST' && $action === 'unlock_folder') {
+    if (rate_limited(client_ip(), 'folder_unlock', 15, 900)) {
+        fail(429, 'rate_limited');
+    }
+
+    $folderId = trim((string) ($_POST['folder_id'] ?? ''));
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
+
+    $resources = read_json_file(RESOURCES_FILE, []);
+    $folder = null;
+    foreach ($resources as $r) {
+        if ($r['id'] === $folderId && $r['type'] === 'folder') {
+            $folder = $r;
+            break;
+        }
+    }
+    if ($folder === null) {
+        fail(404, 'not_found');
+    }
+    if (empty($folder['username'])) {
+        // No credentials configured: nothing to unlock, it was already open.
+        echo json_encode(['ok' => true]);
+        exit;
+    }
+
+    $validUser = hash_equals((string) $folder['username'], $username);
+    $validPass = isset($folder['password_hash']) && password_verify($password, $folder['password_hash']);
+    if (!$validUser || !$validPass) {
+        fail(401, 'invalid_credentials');
+    }
+
+    // Unlock this folder, plus any other folder sharing the exact same
+    // username/password — that shared pair is how a single set of
+    // credentials is meant to grant access to more than one folder.
+    foreach ($resources as $r) {
+        if (
+            $r['type'] === 'folder'
+            && !empty($r['username'])
+            && hash_equals((string) $r['username'], $username)
+            && password_verify($password, $r['password_hash'])
+        ) {
+            $_SESSION[unlocked_session_key($r['id'])] = true;
+        }
+    }
+
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+// ---- Public: clear all unlocked folders in this session ----
+if ($method === 'POST' && $action === 'lock_all') {
+    foreach ($_SESSION as $key => $v) {
+        if (str_starts_with($key, 'unlocked_folder_')) {
+            unset($_SESSION[$key]);
+        }
+    }
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+// ---- Admin: list all resources (full flat tree, including credentials metadata) ----
 if ($method === 'GET' && $action === 'admin_list') {
     require_admin();
     $resources = read_json_file(RESOURCES_FILE, []);
     usort($resources, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
-    echo json_encode(['ok' => true, 'resources' => $resources]);
+    // Never expose the password hash itself to the client.
+    $safe = array_map(function ($r) {
+        $copy = $r;
+        $copy['has_password'] = !empty($r['username']);
+        unset($copy['password_hash']);
+        return $copy;
+    }, $resources);
+    echo json_encode(['ok' => true, 'resources' => $safe]);
     exit;
 }
 
@@ -294,6 +372,8 @@ if ($method === 'POST' && $action === 'save') {
     $id = trim((string) ($_POST['id'] ?? ''));
     $parentId = trim((string) ($_POST['parent_id'] ?? ''));
     $parentId = $parentId === '' ? null : $parentId;
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
 
     if ($title === '' || !in_array($type, TYPES, true)) {
         fail(422, 'invalid_input');
@@ -337,6 +417,22 @@ if ($method === 'POST' && $action === 'save') {
                 $r['url'] = $url;
                 $r['parent_id'] = $parentId;
                 $r['updated_at'] = date('c');
+                if ($type === 'folder') {
+                    if ($username === '') {
+                        // Clearing the username removes protection entirely.
+                        unset($r['username'], $r['password_hash']);
+                    } else {
+                        $r['username'] = $username;
+                        if ($password !== '') {
+                            $r['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
+                        } elseif (empty($r['password_hash'])) {
+                            // A username with no password ever set isn't valid protection.
+                            fail(422, 'password_required');
+                        }
+                    }
+                } else {
+                    unset($r['username'], $r['password_hash']);
+                }
                 $found = true;
                 break;
             }
@@ -351,7 +447,7 @@ if ($method === 'POST' && $action === 'save') {
         foreach ($resources as $r) {
             $maxOrder = max($maxOrder, $r['order'] ?? 0);
         }
-        $resources[] = [
+        $entry = [
             'id' => $id,
             'title' => $title,
             'description' => $description,
@@ -362,6 +458,14 @@ if ($method === 'POST' && $action === 'save') {
             'created_at' => date('c'),
             'updated_at' => date('c'),
         ];
+        if ($type === 'folder' && $username !== '') {
+            if ($password === '') {
+                fail(422, 'password_required');
+            }
+            $entry['username'] = $username;
+            $entry['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
+        }
+        $resources[] = $entry;
     }
 
     write_resources($resources);
@@ -442,8 +546,8 @@ if ($method === 'POST' && $action === 'reorder') {
 // ---- Admin: upload a file resource (keeps its original file name) ----
 if ($method === 'POST' && $action === 'upload') {
     require_admin();
-    $filename = store_uploaded_file($_FILES['file'] ?? null, UPLOAD_DIR, 25 * 1024 * 1024);
-    echo json_encode(['ok' => true, 'url' => '/files/uploads/' . rawurlencode($filename)]);
+    $stored = store_uploaded_file($_FILES['file'] ?? null, UPLOAD_DIR, 25 * 1024 * 1024);
+    echo json_encode(['ok' => true, 'url' => '/files/uploads/' . rawurlencode($stored['stored'])]);
     exit;
 }
 
@@ -458,30 +562,88 @@ if ($method === 'GET' && $action === 'guides_list') {
     exit;
 }
 
-// ---- Admin: upload a new guide (file + title), returns a public link ----
+// ---- Admin: upload a new guide (file + title + custom link slug) ----
 if ($method === 'POST' && $action === 'guides_upload') {
     require_admin();
 
     $title = trim((string) ($_POST['title'] ?? ''));
+    $rawSlug = trim((string) ($_POST['slug'] ?? ''));
     if ($title === '') {
         fail(422, 'invalid_input');
     }
 
-    $filename = store_uploaded_file($_FILES['file'] ?? null, GUIDES_DIR, 25 * 1024 * 1024);
-    $url = '/files/guias/' . rawurlencode($filename);
-
     $guides = read_json_file(GUIDES_FILE, []);
+
+    $baseSlug = slugify($rawSlug !== '' ? $rawSlug : $title);
+    if ($baseSlug === '') {
+        $baseSlug = 'guia';
+    }
+    $slug = $baseSlug;
+    $i = 2;
+    while (in_array($slug, array_column($guides, 'slug'), true)) {
+        $slug = $baseSlug . '-' . $i;
+        $i++;
+    }
+
+    $stored = store_uploaded_file($_FILES['file'] ?? null, GUIDES_DIR, 25 * 1024 * 1024);
+
     $guide = [
         'id' => bin2hex(random_bytes(8)),
         'title' => $title,
-        'filename' => $filename,
-        'url' => $url,
+        'slug' => $slug,
+        'stored_filename' => $stored['stored'],
+        'original_filename' => $stored['original'],
+        'url' => '/guias/' . $slug,
         'created_at' => date('c'),
     ];
     $guides[] = $guide;
     write_guides($guides);
 
     echo json_encode(['ok' => true, 'guide' => $guide]);
+    exit;
+}
+
+// ---- Admin: rename a guide's title/slug without touching the file ----
+if ($method === 'POST' && $action === 'guides_update') {
+    require_admin();
+    $id = trim((string) ($_POST['id'] ?? ''));
+    $title = trim((string) ($_POST['title'] ?? ''));
+    $rawSlug = trim((string) ($_POST['slug'] ?? ''));
+
+    if ($title === '') {
+        fail(422, 'invalid_input');
+    }
+
+    $guides = read_json_file(GUIDES_FILE, []);
+    $found = false;
+    $newSlug = slugify($rawSlug !== '' ? $rawSlug : $title);
+    if ($newSlug === '') {
+        $newSlug = 'guia';
+    }
+
+    foreach ($guides as &$g) {
+        if ($g['id'] === $id) {
+            $slug = $newSlug;
+            $i = 2;
+            while (in_array($slug, array_column($guides, 'slug'), true) && $slug !== $g['slug']) {
+                $slug = $newSlug . '-' . $i;
+                $i++;
+            }
+            $g['title'] = $title;
+            $g['slug'] = $slug;
+            $g['url'] = '/guias/' . $slug;
+            $found = true;
+            break;
+        }
+    }
+    unset($g);
+
+    if (!$found) {
+        fail(404, 'not_found');
+    }
+
+    write_guides($guides);
+    echo json_encode(['ok' => true]);
     exit;
 }
 
@@ -493,7 +655,7 @@ if ($method === 'POST' && $action === 'guides_delete') {
 
     foreach ($guides as $g) {
         if ($g['id'] === $id) {
-            $path = GUIDES_DIR . '/' . basename($g['filename']);
+            $path = GUIDES_DIR . '/' . basename($g['stored_filename']);
             if (is_file($path)) {
                 @unlink($path);
             }

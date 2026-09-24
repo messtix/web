@@ -29,6 +29,10 @@ Options -Indexes -MultiViews
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # Pretty download links for Guías: /guias/<slug> -> guia-download.php
+  RewriteRule ^guias/([A-Za-z0-9_-]+)/?$ guia-download.php?slug=$1 [L,QSA]
+
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]

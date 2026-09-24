@@ -1,12 +1,24 @@
 import { useEffect, useState } from 'react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import Icon from '../components/Icon';
-import { checkSession, participantLogin, participantLogout, listResources } from '../api/files';
+import { listResources, unlockFolder, lockAllFolders } from '../api/files';
 
 const TYPE_ICON = { folder: 'folder', link: 'link', file: 'file' };
 const TYPE_LABEL = { folder: 'Carpeta', link: 'Enlace', file: 'Archivo' };
 
-function LoginGate({ onLoggedIn }) {
+function folderPath(id, cache) {
+  const path = [];
+  let current = id;
+  while (current) {
+    const folder = cache[current];
+    if (!folder) break;
+    path.unshift(folder);
+    current = folder.parent_id;
+  }
+  return path;
+}
+
+function UnlockForm({ folder, onUnlocked }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,8 +29,8 @@ function LoginGate({ onLoggedIn }) {
     setLoading(true);
     setError('');
     try {
-      await participantLogin(username, password);
-      onLoggedIn();
+      await unlockFolder(folder.id, username, password);
+      onUnlocked();
     } catch (err) {
       setError(
         err.message === 'rate_limited'
@@ -31,16 +43,16 @@ function LoginGate({ onLoggedIn }) {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 420, paddingTop: 90, paddingBottom: 90 }}>
+    <div className="container" style={{ maxWidth: 420, paddingTop: 30, paddingBottom: 90 }}>
       <span className="icon-badge icon-badge-outline"><Icon name="lock" /></span>
-      <span className="eyebrow">Acceso Restringido</span>
-      <h1>Directorio de Archivos</h1>
-      <p className="section-lead">Ingresa con las credenciales que te fueron compartidas.</p>
+      <span className="eyebrow">Carpeta Protegida</span>
+      <h1>{folder.title}</h1>
+      <p className="section-lead">Ingresa el usuario y la contraseña de esta carpeta.</p>
       <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
         <div>
-          <label htmlFor="p-username">Usuario</label>
+          <label htmlFor="f-username">Usuario</label>
           <input
-            id="p-username"
+            id="f-username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -49,9 +61,9 @@ function LoginGate({ onLoggedIn }) {
           />
         </div>
         <div>
-          <label htmlFor="p-password">Contraseña</label>
+          <label htmlFor="f-password">Contraseña</label>
           <input
-            id="p-password"
+            id="f-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -67,36 +79,63 @@ function LoginGate({ onLoggedIn }) {
   );
 }
 
-function folderPath(id, resources) {
-  const path = [];
-  let current = id;
-  while (current) {
-    const folder = resources.find((r) => r.id === current);
-    if (!folder) break;
-    path.unshift(folder);
-    current = folder.parent_id;
-  }
-  return path;
-}
-
-function ResourceList({ onLogout }) {
-  const [resources, setResources] = useState(null);
-  const [error, setError] = useState('');
+export default function Archivos() {
+  useDocumentTitle('Directorio de Archivos | Messtix');
   const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [folderCache, setFolderCache] = useState({});
+  const [items, setItems] = useState(null);
+  const [status, setStatus] = useState('loading'); // loading | ok | locked | error
+  const [lockedFolder, setLockedFolder] = useState(null);
 
   useEffect(() => {
-    listResources()
-      .then((res) => setResources(res.resources))
-      .catch(() => setError('No se pudo cargar el directorio. Intenta de nuevo.'));
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => document.head.removeChild(meta);
   }, []);
 
-  async function handleLogout() {
-    await participantLogout();
-    onLogout();
+  function load(folderId) {
+    setStatus('loading');
+    listResources(folderId || undefined)
+      .then((res) => {
+        setItems(res.resources);
+        setStatus('ok');
+        setFolderCache((cache) => {
+          const next = { ...cache };
+          res.resources.forEach((r) => {
+            if (r.type === 'folder') next[r.id] = r;
+          });
+          return next;
+        });
+      })
+      .catch((err) => {
+        if (err.message === 'locked') {
+          const folder = folderCache[folderId];
+          setLockedFolder(folder || { id: folderId, title: 'Carpeta' });
+          setStatus('locked');
+        } else {
+          setStatus('error');
+        }
+      });
   }
 
-  const items = (resources || []).filter((r) => (r.parent_id || null) === currentFolderId);
-  const breadcrumb = currentFolderId ? folderPath(currentFolderId, resources || []) : [];
+  useEffect(() => {
+    load(currentFolderId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFolderId]);
+
+  function enterFolder(folder) {
+    setFolderCache((cache) => ({ ...cache, [folder.id]: folder }));
+    setCurrentFolderId(folder.id);
+  }
+
+  async function handleLockAll() {
+    await lockAllFolders();
+    setCurrentFolderId(null);
+  }
+
+  const breadcrumb = currentFolderId ? folderPath(currentFolderId, folderCache) : [];
 
   return (
     <div className="container" style={{ paddingTop: 60, paddingBottom: 90 }}>
@@ -106,30 +145,36 @@ function ResourceList({ onLogout }) {
           <h1>Directorio de Archivos</h1>
           <p className="section-lead">Carpetas, enlaces y materiales disponibles para ti.</p>
         </div>
-        <button type="button" className="btn btn-outline" onClick={handleLogout}>
-          <Icon name="logout" /> Salir
+        <button type="button" className="btn btn-outline" onClick={handleLockAll}>
+          <Icon name="logout" /> Bloquear Carpetas
         </button>
       </div>
 
-      {resources !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20, fontSize: '.9rem' }}>
-          <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(null)}>Raíz</button>
-          {breadcrumb.map((f) => (
-            <span key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>/</span>
-              <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(f.id)}>{f.title}</button>
-            </span>
-          ))}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20, fontSize: '.9rem' }}>
+        <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(null)}>Raíz</button>
+        {breadcrumb.map((f) => (
+          <span key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>/</span>
+            <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(f.id)}>{f.title}</button>
+          </span>
+        ))}
+      </div>
+
+      {status === 'loading' && <p style={{ marginTop: 32 }}>Cargando…</p>}
+      {status === 'error' && (
+        <p style={{ color: 'var(--vino-text)', marginTop: 24 }}>
+          No se pudo cargar el directorio. Intenta de nuevo.
+        </p>
+      )}
+      {status === 'locked' && lockedFolder && (
+        <UnlockForm folder={lockedFolder} onUnlocked={() => load(currentFolderId)} />
       )}
 
-      {error && <p style={{ color: 'var(--vino-text)', marginTop: 24 }}>{error}</p>}
-      {!error && resources === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
-      {!error && resources !== null && items.length === 0 && (
+      {status === 'ok' && items !== null && items.length === 0 && (
         <p style={{ marginTop: 32 }}>Esta carpeta todavía no tiene archivos.</p>
       )}
 
-      {!error && resources !== null && items.length > 0 && (
+      {status === 'ok' && items !== null && items.length > 0 && (
         <div className="grid grid-3" style={{ marginTop: 40 }}>
           {items.map((r) =>
             r.type === 'folder' ? (
@@ -137,14 +182,14 @@ function ResourceList({ onLogout }) {
                 key={r.id}
                 type="button"
                 className="skill-card resource-card"
-                onClick={() => setCurrentFolderId(r.id)}
+                onClick={() => enterFolder(r)}
               >
                 <span className="icon-badge icon-badge-outline">
-                  <Icon name="folder" />
+                  <Icon name={r.has_password ? 'lock' : 'folder'} />
                 </span>
                 <span>
                   <strong style={{ display: 'block' }}>{r.title}</strong>
-                  <span className="resource-type">Carpeta</span>
+                  <span className="resource-type">{r.has_password ? 'Carpeta protegida' : 'Carpeta'}</span>
                   {r.description && <span className="resource-desc">{r.description}</span>}
                 </span>
               </button>
@@ -171,37 +216,4 @@ function ResourceList({ onLogout }) {
       )}
     </div>
   );
-}
-
-export default function Archivos() {
-  useDocumentTitle('Directorio de Archivos | Messtix');
-  const [loggedIn, setLoggedIn] = useState(null);
-
-  useEffect(() => {
-    const meta = document.createElement('meta');
-    meta.name = 'robots';
-    meta.content = 'noindex, nofollow';
-    document.head.appendChild(meta);
-    return () => document.head.removeChild(meta);
-  }, []);
-
-  useEffect(() => {
-    checkSession()
-      .then((res) => setLoggedIn(res.loggedIn))
-      .catch(() => setLoggedIn(false));
-  }, []);
-
-  if (loggedIn === null) {
-    return (
-      <div className="container" style={{ paddingTop: 90, paddingBottom: 90 }}>
-        <p>Cargando…</p>
-      </div>
-    );
-  }
-
-  if (!loggedIn) {
-    return <LoginGate onLoggedIn={() => setLoggedIn(true)} />;
-  }
-
-  return <ResourceList onLogout={() => setLoggedIn(false)} />;
 }

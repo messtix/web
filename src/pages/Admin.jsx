@@ -28,6 +28,7 @@ import {
   uploadResourceFile,
   adminListGuides,
   uploadGuide,
+  updateGuide,
   deleteGuide,
 } from '../api/files';
 
@@ -68,6 +69,8 @@ function emptyResourceForm() {
     type: 'link',
     url: '',
     parent_id: '',
+    username: '',
+    password: '',
   };
 }
 
@@ -698,7 +701,11 @@ function folderPath(id, resources) {
 }
 
 function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }) {
-  const [form, setForm] = useState(initial || { ...emptyResourceForm(), parent_id: defaultParentId || '' });
+  const [form, setForm] = useState(
+    initial
+      ? { ...emptyResourceForm(), ...initial, password: '' }
+      : { ...emptyResourceForm(), parent_id: defaultParentId || '' }
+  );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -740,12 +747,21 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
       return;
     }
 
+    if (form.type === 'folder' && form.username.trim() && !form.password && !form.has_password) {
+      setError('Define una contraseña para el usuario de esta carpeta.');
+      return;
+    }
+
     setSaving(true);
     try {
       await saveResource(form);
       onSaved();
-    } catch {
-      setError('No se pudo guardar el recurso. Intenta de nuevo.');
+    } catch (err) {
+      setError(
+        err.message === 'password_required'
+          ? 'Define una contraseña para el usuario de esta carpeta.'
+          : 'No se pudo guardar el recurso. Intenta de nuevo.'
+      );
     } finally {
       setSaving(false);
     }
@@ -793,6 +809,37 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
           onChange={(e) => set('description', e.target.value)}
         />
       </div>
+      {form.type === 'folder' && (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 16 }}>
+          <p style={{ marginTop: 0, fontSize: '.85rem' }}>
+            Opcional: define un usuario y contraseña para que solo quien los tenga pueda ver el
+            contenido de esta carpeta. Si usas el mismo usuario y contraseña en varias carpetas,
+            esas credenciales dan acceso a todas ellas. Déjalo en blanco para una carpeta abierta.
+          </p>
+          <div>
+            <label htmlFor="r-username">Usuario</label>
+            <input
+              id="r-username"
+              type="text"
+              maxLength="60"
+              value={form.username}
+              onChange={(e) => set('username', e.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="r-password">
+              Contraseña {form.has_password ? '(déjalo en blanco para no cambiarla)' : ''}
+            </label>
+            <input
+              id="r-password"
+              type="text"
+              maxLength="100"
+              value={form.password}
+              onChange={(e) => set('password', e.target.value)}
+            />
+          </div>
+        </div>
+      )}
       {form.type === 'folder' ? null : form.type === 'file' ? (
         <div>
           <label htmlFor="r-file">Archivo</label>
@@ -888,8 +935,9 @@ function FilesPanel() {
         <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nuevo Recurso</button>
       </div>
       <p style={{ marginTop: 12, fontSize: '.85rem' }}>
-        Visible en <a href="/archivos" target="_blank" rel="noreferrer">/archivos</a> con usuario y
-        contraseña compartidos aparte con los participantes. Esta página no aparece en el menú.
+        Visible en <a href="/archivos" target="_blank" rel="noreferrer">/archivos</a>. Esta página
+        no aparece en el menú. Las carpetas pueden tener su propio usuario y contraseña; los
+        enlaces y archivos son visibles apenas se entra a la carpeta que los contiene.
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20, fontSize: '.9rem' }}>
@@ -915,7 +963,7 @@ function FilesPanel() {
               <div>
                 {r.type === 'folder' ? (
                   <button type="button" className="btn-ghost" style={{ fontWeight: 600 }} onClick={() => setCurrentFolderId(r.id)}>
-                    📁 {r.title}
+                    {r.has_password ? '🔒' : '📁'} {r.title}
                   </button>
                 ) : (
                   <strong>{r.title}</strong>
@@ -923,6 +971,9 @@ function FilesPanel() {
                 <span className="admin-status is-published">
                   {RESOURCE_TYPES.find((t) => t.value === r.type)?.label || r.type}
                 </span>
+                {r.type === 'folder' && r.has_password && (
+                  <span className="admin-status is-draft">Usuario: {r.username}</span>
+                )}
                 {r.url && <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{r.url}</p>}
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -956,9 +1007,13 @@ function FilesPanel() {
 function GuidesPanel() {
   const [guides, setGuides] = useState(null);
   const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState('');
+  const [editingId, setEditingId] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editSlug, setEditSlug] = useState('');
 
   function reload() {
     adminListGuides().then((res) => setGuides(res.guides));
@@ -976,8 +1031,9 @@ function GuidesPanel() {
     setError('');
     setUploading(true);
     try {
-      await uploadGuide(title.trim(), file);
+      await uploadGuide(title.trim(), slug.trim(), file);
       setTitle('');
+      setSlug('');
       e.target.reset();
       reload();
     } catch {
@@ -1006,12 +1062,26 @@ function GuidesPanel() {
     }
   }
 
+  function startEdit(guide) {
+    setEditingId(guide.id);
+    setEditTitle(guide.title);
+    setEditSlug(guide.slug);
+  }
+
+  async function handleSaveEdit(e) {
+    e.preventDefault();
+    await updateGuide(editingId, editTitle.trim(), editSlug.trim());
+    setEditingId('');
+    reload();
+  }
+
   return (
     <div>
       <h2 className="section-title" style={{ fontSize: '1.6rem', margin: 0 }}>Guías</h2>
       <p style={{ marginTop: 12, fontSize: '.85rem' }}>
-        Sube un archivo y obtén un enlace de descarga público, sin usuario ni contraseña, para
-        compartir donde quieras.
+        Sube un archivo y obtén un enlace de descarga personalizado y público (sin usuario ni
+        contraseña) para compartir donde quieras. La descarga conserva el nombre original del
+        archivo.
       </p>
 
       <form onSubmit={handleUpload} style={{ marginTop: 24, maxWidth: 420 }}>
@@ -1024,6 +1094,20 @@ function GuidesPanel() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
+        </div>
+        <div>
+          <label htmlFor="g-slug">Enlace personalizado (opcional)</label>
+          <input
+            id="g-slug"
+            type="text"
+            maxLength="80"
+            placeholder="ej. guia-bienvenida"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+          />
+          <p style={{ fontSize: '.8rem', margin: '4px 0 0' }}>
+            {window.location.origin}/guias/{slug.trim() || '…'}
+          </p>
         </div>
         <div>
           <label htmlFor="g-file">Archivo</label>
@@ -1047,21 +1131,51 @@ function GuidesPanel() {
 
       {guides !== null && guides.length > 0 && (
         <div className="admin-post-list" style={{ marginTop: 32 }}>
-          {guides.map((g) => (
-            <div className="admin-post-row" key={g.id}>
-              <div>
-                <strong>{g.title}</strong>
-                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{g.url}</p>
+          {guides.map((g) =>
+            editingId === g.id ? (
+              <form className="admin-post-row" key={g.id} onSubmit={handleSaveEdit} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+                <div>
+                  <label htmlFor={`e-title-${g.id}`}>Título</label>
+                  <input
+                    id={`e-title-${g.id}`}
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`e-slug-${g.id}`}>Enlace personalizado</label>
+                  <input
+                    id={`e-slug-${g.id}`}
+                    type="text"
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="submit" className="btn btn-primary">Guardar</button>
+                  <button type="button" className="btn btn-outline" onClick={() => setEditingId('')}>Cancelar</button>
+                </div>
+              </form>
+            ) : (
+              <div className="admin-post-row" key={g.id}>
+                <div>
+                  <strong>{g.title}</strong>
+                  <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>
+                    {window.location.origin}{g.url} · descarga: {g.original_filename}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button className="btn-ghost" onClick={() => handleCopy(g)}>
+                    {copiedId === g.id ? '¡Copiado!' : 'Copiar Enlace'}
+                  </button>
+                  <a className="btn-ghost" href={g.url} target="_blank" rel="noreferrer">Abrir</a>
+                  <button className="btn-ghost" onClick={() => startEdit(g)}>Editar</button>
+                  <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(g.id, g.title)}>Eliminar</button>
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn-ghost" onClick={() => handleCopy(g)}>
-                  {copiedId === g.id ? '¡Copiado!' : 'Copiar Enlace'}
-                </button>
-                <a className="btn-ghost" href={g.url} target="_blank" rel="noreferrer">Abrir</a>
-                <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(g.id, g.title)}>Eliminar</button>
-              </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
     </div>

@@ -26,23 +26,20 @@ async function request(action, { method = 'GET', params, body } = {}) {
   return data;
 }
 
-export function checkSession() {
-  return request('check');
+export function listResources(folderId) {
+  return request('list', folderId ? { params: { folder_id: folderId } } : undefined);
 }
 
-export function participantLogin(username, password) {
+export function unlockFolder(folderId, username, password) {
   const body = new FormData();
+  body.set('folder_id', folderId);
   body.set('username', username);
   body.set('password', password);
-  return request('participant_login', { method: 'POST', body });
+  return request('unlock_folder', { method: 'POST', body });
 }
 
-export function participantLogout() {
-  return request('participant_logout', { method: 'POST', body: new FormData() });
-}
-
-export function listResources() {
-  return request('list');
+export function lockAllFolders() {
+  return request('lock_all', { method: 'POST', body: new FormData() });
 }
 
 export function adminListResources() {
@@ -57,6 +54,8 @@ export function saveResource(resource) {
   body.set('type', resource.type);
   body.set('url', resource.url || '');
   body.set('parent_id', resource.parent_id || '');
+  body.set('username', resource.username || '');
+  body.set('password', resource.password || '');
   return request('save', { method: 'POST', body });
 }
 
@@ -83,11 +82,20 @@ export function adminListGuides() {
   return request('guides_list');
 }
 
-export function uploadGuide(title, file) {
+export function uploadGuide(title, slug, file) {
   const body = new FormData();
   body.set('title', title);
+  body.set('slug', slug || '');
   body.set('file', file);
   return request('guides_upload', { method: 'POST', body });
+}
+
+export function updateGuide(id, title, slug) {
+  const body = new FormData();
+  body.set('id', id);
+  body.set('title', title);
+  body.set('slug', slug || '');
+  return request('guides_update', { method: 'POST', body });
 }
 
 export function deleteGuide(id) {
