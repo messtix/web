@@ -23,6 +23,10 @@ const paths = {
   calendar: 'M7 3v3M17 3v3M4 8h16M4 6h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1ZM8 13h2M14 13h2M8 17h2',
   share: 'M6 12a3 3 0 1 0 0-.001M18 5a3 3 0 1 0 0 .001M18 19a3 3 0 1 0 0-.001M8.6 10.6l6.8-3.7M8.6 13.4l6.8 3.7',
   send: 'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z',
+  folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z',
+  file: 'M6 2h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1ZM14 2v4h4M9 13h6M9 17h6M9 9h2',
+  lock: 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9ZM12 15v3',
+  logout: 'M9 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4M16 17l5-5-5-5M21 12H9',
 };
 
 export default function Icon({ name, className = '' }) {

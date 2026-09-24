@@ -20,6 +20,13 @@ import {
   deleteProject,
   uploadProjectImage,
 } from '../api/portfolio';
+import {
+  adminListResources,
+  saveResource,
+  deleteResource,
+  reorderResource,
+  uploadResourceFile,
+} from '../api/files';
 
 const ADMIN_PER_PAGE = 20;
 
@@ -47,6 +54,16 @@ function emptyProjectForm() {
     description: '',
     cover_image: '',
     published: false,
+  };
+}
+
+function emptyResourceForm() {
+  return {
+    id: '',
+    title: '',
+    description: '',
+    type: 'link',
+    url: '',
   };
 }
 
@@ -643,6 +660,234 @@ function PortfolioPanel() {
   );
 }
 
+const RESOURCE_TYPES = [
+  { value: 'link', label: 'Enlace' },
+  { value: 'folder', label: 'Carpeta' },
+  { value: 'file', label: 'Archivo' },
+];
+
+function ResourceForm({ initial, onSaved, onCancel }) {
+  const [form, setForm] = useState(initial || emptyResourceForm());
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  function set(field, value) {
+    setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const res = await uploadResourceFile(file);
+      set('url', res.url);
+    } catch {
+      setError('No se pudo subir el archivo. Verifica el formato y que pese menos de 25MB.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+
+    if (uploading) {
+      setError('Espera a que termine de subirse el archivo antes de guardar.');
+      return;
+    }
+
+    if (!form.title.trim() || !form.url.trim()) {
+      setError('El título y el enlace o archivo son obligatorios.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await saveResource(form);
+      onSaved();
+    } catch {
+      setError('No se pudo guardar el recurso. Intenta de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
+      <div>
+        <label htmlFor="r-title">Título</label>
+        <input
+          id="r-title"
+          type="text"
+          required
+          maxLength="150"
+          value={form.title}
+          onChange={(e) => set('title', e.target.value)}
+        />
+      </div>
+      <div>
+        <label htmlFor="r-type">Tipo</label>
+        <select id="r-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
+          {RESOURCE_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="r-description">Descripción (opcional)</label>
+        <textarea
+          id="r-description"
+          rows="2"
+          maxLength="300"
+          value={form.description}
+          onChange={(e) => set('description', e.target.value)}
+        />
+      </div>
+      {form.type === 'file' ? (
+        <div>
+          <label htmlFor="r-file">Archivo</label>
+          <input
+            id="r-file"
+            type="file"
+            accept=".pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
+            onChange={handleFileChange}
+          />
+          {uploading && <p>Subiendo archivo…</p>}
+          {form.url && !uploading && (
+            <p style={{ fontSize: '.85rem', marginTop: 6 }}>Archivo listo: {form.url}</p>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label htmlFor="r-url">
+            {form.type === 'folder' ? 'Enlace a la carpeta (Drive, etc.)' : 'Enlace'}
+          </label>
+          <input
+            id="r-url"
+            type="text"
+            placeholder="ejemplo.com/recurso"
+            value={form.url}
+            onChange={(e) => set('url', e.target.value)}
+          />
+        </div>
+      )}
+
+      {error && <p style={{ color: 'var(--vino)' }}>{error}</p>}
+
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button type="submit" className="btn btn-primary" disabled={saving || uploading}>
+          {saving ? 'Guardando…' : uploading ? 'Subiendo…' : 'Guardar Recurso'}
+        </button>
+        <button type="button" className="btn btn-outline" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function FilesPanel() {
+  const [resources, setResources] = useState(null);
+  const [editing, setEditing] = useState(null); // null = list, {} = new, resource = edit
+
+  function reload() {
+    adminListResources().then((res) => setResources(res.resources));
+  }
+
+  useEffect(reload, []);
+
+  async function handleDelete(id, title) {
+    if (!window.confirm(`¿Eliminar "${title}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    await deleteResource(id);
+    reload();
+  }
+
+  async function handleMove(id, direction) {
+    await reorderResource(id, direction);
+    reload();
+  }
+
+  if (editing !== null) {
+    return (
+      <div>
+        <h2 className="section-title" style={{ fontSize: '1.6rem' }}>
+          {editing.id ? 'Editar Recurso' : 'Nuevo Recurso'}
+        </h2>
+        <ResourceForm
+          initial={editing.id ? editing : null}
+          onSaved={() => {
+            setEditing(null);
+            reload();
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <h2 className="section-title" style={{ fontSize: '1.6rem', margin: 0 }}>Directorio de Archivos</h2>
+        <button className="btn btn-primary" onClick={() => setEditing({})}>+ Nuevo Recurso</button>
+      </div>
+      <p style={{ marginTop: 12, fontSize: '.85rem' }}>
+        Visible en <a href="/archivos" target="_blank" rel="noreferrer">/archivos</a> con usuario y
+        contraseña compartidos aparte con los participantes. Esta página no aparece en el menú.
+      </p>
+
+      {resources === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
+
+      {resources !== null && resources.length === 0 && (
+        <p style={{ marginTop: 32 }}>Todavía no has agregado ningún recurso.</p>
+      )}
+
+      {resources !== null && resources.length > 0 && (
+        <div className="admin-post-list">
+          {resources.map((r, i) => (
+            <div className="admin-post-row" key={r.id}>
+              <div>
+                <strong>{r.title}</strong>
+                <span className="admin-status is-published">
+                  {RESOURCE_TYPES.find((t) => t.value === r.type)?.label || r.type}
+                </span>
+                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{r.url}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  className="btn-ghost"
+                  disabled={i === 0}
+                  onClick={() => handleMove(r.id, 'up')}
+                  aria-label="Subir"
+                >
+                  ↑
+                </button>
+                <button
+                  className="btn-ghost"
+                  disabled={i === resources.length - 1}
+                  onClick={() => handleMove(r.id, 'down')}
+                  aria-label="Bajar"
+                >
+                  ↓
+                </button>
+                <button className="btn-ghost" onClick={() => setEditing(r)}>Editar</button>
+                <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(r.id, r.title)}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChangePasswordForm({ onDone }) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -729,7 +974,7 @@ function ChangeNameForm({ current, onDone, onChanged }) {
 }
 
 function Dashboard({ displayName, onDisplayNameChange }) {
-  const [section, setSection] = useState('blog'); // 'blog' | 'portfolio'
+  const [section, setSection] = useState('blog'); // 'blog' | 'portfolio' | 'files'
   const [panel, setPanel] = useState(null); // null | 'password' | 'name'
 
   async function handleLogout() {
@@ -776,14 +1021,19 @@ function Dashboard({ displayName, onDisplayNameChange }) {
         >
           Portafolio
         </button>
+        <button
+          type="button"
+          className={`category-filter${section === 'files' ? ' is-active' : ''}`}
+          onClick={() => setSection('files')}
+        >
+          Archivos
+        </button>
       </div>
 
       <div style={{ marginTop: 24 }}>
-        {section === 'blog' ? (
-          <BlogPanel displayName={displayName} />
-        ) : (
-          <PortfolioPanel />
-        )}
+        {section === 'blog' && <BlogPanel displayName={displayName} />}
+        {section === 'portfolio' && <PortfolioPanel />}
+        {section === 'files' && <FilesPanel />}
       </div>
     </div>
   );
