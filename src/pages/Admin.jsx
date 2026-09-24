@@ -701,10 +701,11 @@ function folderPath(id, resources) {
 }
 
 function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }) {
+  const hasFolders = resources.some((r) => r.type === 'folder');
   const [form, setForm] = useState(
     initial
       ? { ...emptyResourceForm(), ...initial, password: '' }
-      : { ...emptyResourceForm(), parent_id: defaultParentId || '' }
+      : { ...emptyResourceForm(), parent_id: defaultParentId || '', type: hasFolders ? 'link' : 'folder' }
   );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -716,7 +717,6 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
 
   const excluded = form.id ? descendantIds(form.id, resources) : [];
   const folderOptions = resources.filter((r) => r.type === 'folder' && !excluded.includes(r.id));
-
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -747,7 +747,17 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
       return;
     }
 
-    if (form.type === 'folder' && form.username.trim() && !form.password && !form.has_password) {
+    if (form.type !== 'folder' && !form.parent_id) {
+      setError('Selecciona la carpeta donde va este recurso. Los enlaces y archivos siempre van dentro de una carpeta.');
+      return;
+    }
+
+    if (form.type === 'folder' && !form.username.trim()) {
+      setError('Define un usuario para esta carpeta.');
+      return;
+    }
+
+    if (form.type === 'folder' && !form.password && !form.has_password) {
       setError('Define una contraseña para el usuario de esta carpeta.');
       return;
     }
@@ -760,6 +770,10 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
       setError(
         err.message === 'password_required'
           ? 'Define una contraseña para el usuario de esta carpeta.'
+          : err.message === 'username_required'
+          ? 'Define un usuario para esta carpeta.'
+          : err.message === 'parent_required'
+          ? 'Selecciona la carpeta donde va este recurso.'
           : 'No se pudo guardar el recurso. Intenta de nuevo.'
       );
     } finally {
@@ -784,21 +798,47 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
         <label htmlFor="r-type">Tipo</label>
         <select id="r-type" value={form.type} onChange={(e) => set('type', e.target.value)}>
           {RESOURCE_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="r-parent">Carpeta</label>
-        <select id="r-parent" value={form.parent_id || ''} onChange={(e) => set('parent_id', e.target.value)}>
-          <option value="">Raíz (sin carpeta)</option>
-          {folderOptions.map((f) => (
-            <option key={f.id} value={f.id}>
-              {folderPath(f.id, resources).map((p) => p.title).join(' / ')}
+            <option key={t.value} value={t.value} disabled={t.value !== 'folder' && folderOptions.length === 0}>
+              {t.label}
             </option>
           ))}
         </select>
+        {folderOptions.length === 0 && (
+          <p style={{ fontSize: '.8rem', margin: '4px 0 0' }}>
+            Crea al menos una carpeta antes de poder agregar enlaces o archivos.
+          </p>
+        )}
       </div>
+      {form.type === 'folder' ? (
+        <div>
+          <label htmlFor="r-parent">Carpeta superior (opcional)</label>
+          <select id="r-parent" value={form.parent_id || ''} onChange={(e) => set('parent_id', e.target.value)}>
+            <option value="">Raíz (carpeta principal)</option>
+            {folderOptions.map((f) => (
+              <option key={f.id} value={f.id}>
+                {folderPath(f.id, resources).map((p) => p.title).join(' / ')}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div>
+          <label htmlFor="r-parent">Carpeta</label>
+          <select
+            id="r-parent"
+            required
+            value={form.parent_id || ''}
+            onChange={(e) => set('parent_id', e.target.value)}
+          >
+            <option value="" disabled>Selecciona una carpeta</option>
+            {folderOptions.map((f) => (
+              <option key={f.id} value={f.id}>
+                {folderPath(f.id, resources).map((p) => p.title).join(' / ')}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label htmlFor="r-description">Descripción (opcional)</label>
         <textarea
@@ -812,15 +852,16 @@ function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }
       {form.type === 'folder' && (
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: 16 }}>
           <p style={{ marginTop: 0, fontSize: '.85rem' }}>
-            Opcional: define un usuario y contraseña para que solo quien los tenga pueda ver el
-            contenido de esta carpeta. Si usas el mismo usuario y contraseña en varias carpetas,
-            esas credenciales dan acceso a todas ellas. Déjalo en blanco para una carpeta abierta.
+            Toda carpeta necesita su propio usuario y contraseña: solo quien los tenga puede ver
+            su contenido. Si usas el mismo usuario y contraseña en varias carpetas, esas
+            credenciales dan acceso a todas ellas.
           </p>
           <div>
             <label htmlFor="r-username">Usuario</label>
             <input
               id="r-username"
               type="text"
+              required
               maxLength="60"
               value={form.username}
               onChange={(e) => set('username', e.target.value)}
@@ -936,8 +977,9 @@ function FilesPanel() {
       </div>
       <p style={{ marginTop: 12, fontSize: '.85rem' }}>
         Visible en <a href="/archivos" target="_blank" rel="noreferrer">/archivos</a>. Esta página
-        no aparece en el menú. Las carpetas pueden tener su propio usuario y contraseña; los
-        enlaces y archivos son visibles apenas se entra a la carpeta que los contiene.
+        no aparece en el menú y siempre pide usuario y contraseña antes de mostrar nada. Toda
+        carpeta requiere su propio usuario y contraseña, y los enlaces y archivos solo pueden
+        vivir dentro de una carpeta.
       </p>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20, fontSize: '.9rem' }}>

@@ -30,6 +30,13 @@ export function listResources(folderId) {
   return request('list', folderId ? { params: { folder_id: folderId } } : undefined);
 }
 
+export function login(username, password) {
+  const body = new FormData();
+  body.set('username', username);
+  body.set('password', password);
+  return request('login', { method: 'POST', body });
+}
+
 export function unlockFolder(folderId, username, password) {
   const body = new FormData();
   body.set('folder_id', folderId);

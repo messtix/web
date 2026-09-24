@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import Icon from '../components/Icon';
-import { listResources, unlockFolder, lockAllFolders } from '../api/files';
+import { login, listResources, unlockFolder, lockAllFolders } from '../api/files';
 
 const TYPE_ICON = { folder: 'folder', link: 'link', file: 'file' };
 const TYPE_LABEL = { folder: 'Carpeta', link: 'Enlace', file: 'Archivo' };
@@ -16,6 +16,67 @@ function folderPath(id, cache) {
     current = folder.parent_id;
   }
   return path;
+}
+
+function LoginGate({ onLoggedIn }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await login(username, password);
+      onLoggedIn();
+    } catch (err) {
+      setError(
+        err.message === 'rate_limited'
+          ? 'Demasiados intentos. Espera unos minutos.'
+          : 'Usuario o contraseña incorrectos.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="container" style={{ maxWidth: 420, paddingTop: 90, paddingBottom: 90 }}>
+      <span className="icon-badge icon-badge-outline"><Icon name="lock" /></span>
+      <span className="eyebrow">Acceso Restringido</span>
+      <h1>Directorio de Archivos</h1>
+      <p className="section-lead">Ingresa con las credenciales que te fueron compartidas.</p>
+      <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
+        <div>
+          <label htmlFor="p-username">Usuario</label>
+          <input
+            id="p-username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            autoFocus
+          />
+        </div>
+        <div>
+          <label htmlFor="p-password">Contraseña</label>
+          <input
+            id="p-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {error && <p style={{ color: 'var(--vino-text)' }}>{error}</p>}
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? 'Entrando…' : 'Entrar'}
+        </button>
+      </form>
+    </div>
+  );
 }
 
 function UnlockForm({ folder, onUnlocked }) {
@@ -43,12 +104,11 @@ function UnlockForm({ folder, onUnlocked }) {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 420, paddingTop: 30, paddingBottom: 90 }}>
+    <div style={{ maxWidth: 420, marginTop: 24 }}>
       <span className="icon-badge icon-badge-outline"><Icon name="lock" /></span>
-      <span className="eyebrow">Carpeta Protegida</span>
-      <h1>{folder.title}</h1>
+      <h3 style={{ marginTop: 12 }}>{folder.title}</h3>
       <p className="section-lead">Ingresa el usuario y la contraseña de esta carpeta.</p>
-      <form onSubmit={handleSubmit} style={{ marginTop: 24 }}>
+      <form onSubmit={handleSubmit} style={{ marginTop: 16 }}>
         <div>
           <label htmlFor="f-username">Usuario</label>
           <input
@@ -79,21 +139,12 @@ function UnlockForm({ folder, onUnlocked }) {
   );
 }
 
-export default function Archivos() {
-  useDocumentTitle('Directorio de Archivos | Messtix');
+function ResourceBrowser({ onLogout }) {
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [folderCache, setFolderCache] = useState({});
   const [items, setItems] = useState(null);
   const [status, setStatus] = useState('loading'); // loading | ok | locked | error
   const [lockedFolder, setLockedFolder] = useState(null);
-
-  useEffect(() => {
-    const meta = document.createElement('meta');
-    meta.name = 'robots';
-    meta.content = 'noindex, nofollow';
-    document.head.appendChild(meta);
-    return () => document.head.removeChild(meta);
-  }, []);
 
   function load(folderId) {
     setStatus('loading');
@@ -130,9 +181,9 @@ export default function Archivos() {
     setCurrentFolderId(folder.id);
   }
 
-  async function handleLockAll() {
+  async function handleLogout() {
     await lockAllFolders();
-    setCurrentFolderId(null);
+    onLogout();
   }
 
   const breadcrumb = currentFolderId ? folderPath(currentFolderId, folderCache) : [];
@@ -145,8 +196,8 @@ export default function Archivos() {
           <h1>Directorio de Archivos</h1>
           <p className="section-lead">Carpetas, enlaces y materiales disponibles para ti.</p>
         </div>
-        <button type="button" className="btn btn-outline" onClick={handleLockAll}>
-          <Icon name="logout" /> Bloquear Carpetas
+        <button type="button" className="btn btn-outline" onClick={handleLogout}>
+          <Icon name="logout" /> Cerrar Sesión
         </button>
       </div>
 
@@ -171,7 +222,9 @@ export default function Archivos() {
       )}
 
       {status === 'ok' && items !== null && items.length === 0 && (
-        <p style={{ marginTop: 32 }}>Esta carpeta todavía no tiene archivos.</p>
+        <p style={{ marginTop: 32 }}>
+          {currentFolderId ? 'Esta carpeta todavía no tiene archivos.' : 'Todavía no tienes carpetas disponibles.'}
+        </p>
       )}
 
       {status === 'ok' && items !== null && items.length > 0 && (
@@ -215,5 +268,33 @@ export default function Archivos() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Archivos() {
+  useDocumentTitle('Directorio de Archivos | Messtix');
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [sessionKey, setSessionKey] = useState(0);
+
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex, nofollow';
+    document.head.appendChild(meta);
+    return () => document.head.removeChild(meta);
+  }, []);
+
+  if (!loggedIn) {
+    return <LoginGate onLoggedIn={() => setLoggedIn(true)} />;
+  }
+
+  return (
+    <ResourceBrowser
+      key={sessionKey}
+      onLogout={() => {
+        setLoggedIn(false);
+        setSessionKey((k) => k + 1);
+      }}
+    />
   );
 }

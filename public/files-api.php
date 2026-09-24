@@ -241,7 +241,7 @@ function is_folder_unlocked($folderId) {
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
-// ---- Public: list resources inside a folder (or the root when folder_id is empty) ----
+// ---- Public: list resources inside a folder (root only ever shows folders the session has unlocked) ----
 if ($method === 'GET' && $action === 'list') {
     $folderId = trim((string) ($_GET['folder_id'] ?? ''));
     $folderId = $folderId === '' ? null : $folderId;
@@ -259,12 +259,20 @@ if ($method === 'GET' && $action === 'list') {
         if ($folder === null) {
             fail(404, 'not_found');
         }
-        if (!empty($folder['username']) && !is_folder_unlocked($folderId)) {
+        if (!is_folder_unlocked($folderId)) {
             fail(401, 'locked');
         }
     }
 
     $items = array_values(array_filter($resources, fn($r) => ($r['parent_id'] ?? null) === $folderId));
+
+    if ($folderId === null) {
+        // The root only ever lists folders (links/files always live inside
+        // one), and only the ones this session has actually unlocked —
+        // nothing is visible here before logging in to at least one folder.
+        $items = array_values(array_filter($items, fn($r) => $r['type'] === 'folder' && is_folder_unlocked($r['id'])));
+    }
+
     usort($items, fn($a, $b) => ($a['order'] ?? 0) <=> ($b['order'] ?? 0));
 
     $summaries = array_map(function ($r) {
@@ -283,7 +291,45 @@ if ($method === 'GET' && $action === 'list') {
     exit;
 }
 
-// ---- Public: unlock a password-protected folder ----
+// ---- Public: log in with a folder's username/password ----
+// Unlike unlock_folder (used once already inside, to open a specific
+// nested folder), this is the entry gate: it doesn't know which folder
+// the visitor means, so it tries the credentials against every folder
+// and unlocks whichever one(s) match — including any other folder that
+// happens to share the exact same username/password.
+if ($method === 'POST' && $action === 'login') {
+    if (rate_limited(client_ip(), 'archivos_login', 10, 900)) {
+        fail(429, 'rate_limited');
+    }
+
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
+
+    $resources = read_json_file(RESOURCES_FILE, []);
+    $matched = false;
+
+    foreach ($resources as $r) {
+        if (
+            $r['type'] === 'folder'
+            && !empty($r['username'])
+            && hash_equals((string) $r['username'], $username)
+            && isset($r['password_hash'])
+            && password_verify($password, $r['password_hash'])
+        ) {
+            $_SESSION[unlocked_session_key($r['id'])] = true;
+            $matched = true;
+        }
+    }
+
+    if (!$matched) {
+        fail(401, 'invalid_credentials');
+    }
+
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+// ---- Public: unlock a nested password-protected folder while already browsing ----
 if ($method === 'POST' && $action === 'unlock_folder') {
     if (rate_limited(client_ip(), 'folder_unlock', 15, 900)) {
         fail(429, 'rate_limited');
@@ -301,13 +347,8 @@ if ($method === 'POST' && $action === 'unlock_folder') {
             break;
         }
     }
-    if ($folder === null) {
+    if ($folder === null || empty($folder['username'])) {
         fail(404, 'not_found');
-    }
-    if (empty($folder['username'])) {
-        // No credentials configured: nothing to unlock, it was already open.
-        echo json_encode(['ok' => true]);
-        exit;
     }
 
     $validUser = hash_equals((string) $folder['username'], $username);
@@ -334,7 +375,7 @@ if ($method === 'POST' && $action === 'unlock_folder') {
     exit;
 }
 
-// ---- Public: clear all unlocked folders in this session ----
+// ---- Public: log out (clear every unlocked folder in this session) ----
 if ($method === 'POST' && $action === 'lock_all') {
     foreach ($_SESSION as $key => $v) {
         if (str_starts_with($key, 'unlocked_folder_')) {
@@ -379,6 +420,18 @@ if ($method === 'POST' && $action === 'save') {
         fail(422, 'invalid_input');
     }
 
+    // Links and files must always live inside a folder; only folders are
+    // allowed at the root, so the directory stays organized into folders.
+    if ($type !== 'folder' && $parentId === null) {
+        fail(422, 'parent_required');
+    }
+
+    // A folder without a username isn't a valid folder here: every folder
+    // must be reachable only with its own username/password.
+    if ($type === 'folder' && $username === '') {
+        fail(422, 'username_required');
+    }
+
     $resources = read_json_file(RESOURCES_FILE, []);
 
     // A folder can't be placed inside itself.
@@ -418,17 +471,13 @@ if ($method === 'POST' && $action === 'save') {
                 $r['parent_id'] = $parentId;
                 $r['updated_at'] = date('c');
                 if ($type === 'folder') {
-                    if ($username === '') {
-                        // Clearing the username removes protection entirely.
-                        unset($r['username'], $r['password_hash']);
-                    } else {
-                        $r['username'] = $username;
-                        if ($password !== '') {
-                            $r['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
-                        } elseif (empty($r['password_hash'])) {
-                            // A username with no password ever set isn't valid protection.
-                            fail(422, 'password_required');
-                        }
+                    $r['username'] = $username;
+                    if ($password !== '') {
+                        $r['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
+                    } elseif (empty($r['password_hash'])) {
+                        // A folder always needs a password; if none was set
+                        // before, one must be provided now.
+                        fail(422, 'password_required');
                     }
                 } else {
                     unset($r['username'], $r['password_hash']);
@@ -458,7 +507,7 @@ if ($method === 'POST' && $action === 'save') {
             'created_at' => date('c'),
             'updated_at' => date('c'),
         ];
-        if ($type === 'folder' && $username !== '') {
+        if ($type === 'folder') {
             if ($password === '') {
                 fail(422, 'password_required');
             }
