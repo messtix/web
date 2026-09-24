@@ -591,7 +591,8 @@ footer .social-links a:hover{color:var(--vino-text);}
 /* Resource directory (/archivos) */
 .resource-card{
   align-items:flex-start;flex-direction:column;gap:0;
-  text-align:left;cursor:pointer;
+  text-align:left;cursor:pointer;width:100%;
+  font-family:inherit;
 }
 .resource-card .icon-badge{margin-bottom:14px;}
 .resource-type{

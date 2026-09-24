@@ -56,6 +56,7 @@ export function saveResource(resource) {
   body.set('description', resource.description || '');
   body.set('type', resource.type);
   body.set('url', resource.url || '');
+  body.set('parent_id', resource.parent_id || '');
   return request('save', { method: 'POST', body });
 }
 
@@ -76,4 +77,21 @@ export function uploadResourceFile(file) {
   const body = new FormData();
   body.set('file', file);
   return request('upload', { method: 'POST', body });
+}
+
+export function adminListGuides() {
+  return request('guides_list');
+}
+
+export function uploadGuide(title, file) {
+  const body = new FormData();
+  body.set('title', title);
+  body.set('file', file);
+  return request('guides_upload', { method: 'POST', body });
+}
+
+export function deleteGuide(id) {
+  const body = new FormData();
+  body.set('id', id);
+  return request('guides_delete', { method: 'POST', body });
 }

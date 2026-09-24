@@ -26,6 +26,9 @@ import {
   deleteResource,
   reorderResource,
   uploadResourceFile,
+  adminListGuides,
+  uploadGuide,
+  deleteGuide,
 } from '../api/files';
 
 const ADMIN_PER_PAGE = 20;
@@ -64,6 +67,7 @@ function emptyResourceForm() {
     description: '',
     type: 'link',
     url: '',
+    parent_id: '',
   };
 }
 
@@ -666,8 +670,35 @@ const RESOURCE_TYPES = [
   { value: 'file', label: 'Archivo' },
 ];
 
-function ResourceForm({ initial, onSaved, onCancel }) {
-  const [form, setForm] = useState(initial || emptyResourceForm());
+function descendantIds(id, resources) {
+  const ids = [id];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const r of resources) {
+      if (ids.includes(r.parent_id) && !ids.includes(r.id)) {
+        ids.push(r.id);
+        changed = true;
+      }
+    }
+  }
+  return ids;
+}
+
+function folderPath(id, resources) {
+  const path = [];
+  let current = id;
+  while (current) {
+    const folder = resources.find((r) => r.id === current);
+    if (!folder) break;
+    path.unshift(folder);
+    current = folder.parent_id;
+  }
+  return path;
+}
+
+function ResourceForm({ initial, defaultParentId, resources, onSaved, onCancel }) {
+  const [form, setForm] = useState(initial || { ...emptyResourceForm(), parent_id: defaultParentId || '' });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -675,6 +706,9 @@ function ResourceForm({ initial, onSaved, onCancel }) {
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
+
+  const excluded = form.id ? descendantIds(form.id, resources) : [];
+  const folderOptions = resources.filter((r) => r.type === 'folder' && !excluded.includes(r.id));
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -701,7 +735,7 @@ function ResourceForm({ initial, onSaved, onCancel }) {
       return;
     }
 
-    if (!form.title.trim() || !form.url.trim()) {
+    if (!form.title.trim() || (form.type !== 'folder' && !form.url.trim())) {
       setError('El título y el enlace o archivo son obligatorios.');
       return;
     }
@@ -739,6 +773,17 @@ function ResourceForm({ initial, onSaved, onCancel }) {
         </select>
       </div>
       <div>
+        <label htmlFor="r-parent">Carpeta</label>
+        <select id="r-parent" value={form.parent_id || ''} onChange={(e) => set('parent_id', e.target.value)}>
+          <option value="">Raíz (sin carpeta)</option>
+          {folderOptions.map((f) => (
+            <option key={f.id} value={f.id}>
+              {folderPath(f.id, resources).map((p) => p.title).join(' / ')}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
         <label htmlFor="r-description">Descripción (opcional)</label>
         <textarea
           id="r-description"
@@ -748,7 +793,7 @@ function ResourceForm({ initial, onSaved, onCancel }) {
           onChange={(e) => set('description', e.target.value)}
         />
       </div>
-      {form.type === 'file' ? (
+      {form.type === 'folder' ? null : form.type === 'file' ? (
         <div>
           <label htmlFor="r-file">Archivo</label>
           <input
@@ -764,9 +809,7 @@ function ResourceForm({ initial, onSaved, onCancel }) {
         </div>
       ) : (
         <div>
-          <label htmlFor="r-url">
-            {form.type === 'folder' ? 'Enlace a la carpeta (Drive, etc.)' : 'Enlace'}
-          </label>
+          <label htmlFor="r-url">Enlace</label>
           <input
             id="r-url"
             type="text"
@@ -794,6 +837,7 @@ function ResourceForm({ initial, onSaved, onCancel }) {
 function FilesPanel() {
   const [resources, setResources] = useState(null);
   const [editing, setEditing] = useState(null); // null = list, {} = new, resource = edit
+  const [currentFolderId, setCurrentFolderId] = useState(null);
 
   function reload() {
     adminListResources().then((res) => setResources(res.resources));
@@ -822,6 +866,8 @@ function FilesPanel() {
         </h2>
         <ResourceForm
           initial={editing.id ? editing : null}
+          defaultParentId={currentFolderId}
+          resources={resources || []}
           onSaved={() => {
             setEditing(null);
             reload();
@@ -831,6 +877,9 @@ function FilesPanel() {
       </div>
     );
   }
+
+  const items = (resources || []).filter((r) => (r.parent_id || null) === currentFolderId);
+  const breadcrumb = currentFolderId ? folderPath(currentFolderId, resources || []) : [];
 
   return (
     <div>
@@ -843,22 +892,38 @@ function FilesPanel() {
         contraseña compartidos aparte con los participantes. Esta página no aparece en el menú.
       </p>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20, fontSize: '.9rem' }}>
+        <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(null)}>Raíz</button>
+        {breadcrumb.map((f) => (
+          <span key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>/</span>
+            <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(f.id)}>{f.title}</button>
+          </span>
+        ))}
+      </div>
+
       {resources === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
 
-      {resources !== null && resources.length === 0 && (
-        <p style={{ marginTop: 32 }}>Todavía no has agregado ningún recurso.</p>
+      {resources !== null && items.length === 0 && (
+        <p style={{ marginTop: 32 }}>Esta carpeta todavía no tiene recursos.</p>
       )}
 
-      {resources !== null && resources.length > 0 && (
-        <div className="admin-post-list">
-          {resources.map((r, i) => (
+      {resources !== null && items.length > 0 && (
+        <div className="admin-post-list" style={{ marginTop: 24 }}>
+          {items.map((r, i) => (
             <div className="admin-post-row" key={r.id}>
               <div>
-                <strong>{r.title}</strong>
+                {r.type === 'folder' ? (
+                  <button type="button" className="btn-ghost" style={{ fontWeight: 600 }} onClick={() => setCurrentFolderId(r.id)}>
+                    📁 {r.title}
+                  </button>
+                ) : (
+                  <strong>{r.title}</strong>
+                )}
                 <span className="admin-status is-published">
                   {RESOURCE_TYPES.find((t) => t.value === r.type)?.label || r.type}
                 </span>
-                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{r.url}</p>
+                {r.url && <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{r.url}</p>}
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <button
@@ -871,7 +936,7 @@ function FilesPanel() {
                 </button>
                 <button
                   className="btn-ghost"
-                  disabled={i === resources.length - 1}
+                  disabled={i === items.length - 1}
                   onClick={() => handleMove(r.id, 'down')}
                   aria-label="Bajar"
                 >
@@ -879,6 +944,121 @@ function FilesPanel() {
                 </button>
                 <button className="btn-ghost" onClick={() => setEditing(r)}>Editar</button>
                 <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(r.id, r.title)}>Eliminar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GuidesPanel() {
+  const [guides, setGuides] = useState(null);
+  const [title, setTitle] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [copiedId, setCopiedId] = useState('');
+
+  function reload() {
+    adminListGuides().then((res) => setGuides(res.guides));
+  }
+
+  useEffect(reload, []);
+
+  async function handleUpload(e) {
+    e.preventDefault();
+    const file = e.target.elements['g-file'].files?.[0];
+    if (!title.trim() || !file) {
+      setError('Agrega un título y selecciona un archivo.');
+      return;
+    }
+    setError('');
+    setUploading(true);
+    try {
+      await uploadGuide(title.trim(), file);
+      setTitle('');
+      e.target.reset();
+      reload();
+    } catch {
+      setError('No se pudo subir el archivo. Verifica el formato y que pese menos de 25MB.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDelete(id, guideTitle) {
+    if (!window.confirm(`¿Eliminar "${guideTitle}"? El enlace dejará de funcionar.`)) {
+      return;
+    }
+    await deleteGuide(id);
+    reload();
+  }
+
+  async function handleCopy(guide) {
+    const fullUrl = `${window.location.origin}${guide.url}`;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopiedId(guide.id);
+      setTimeout(() => setCopiedId(''), 2000);
+    } catch {
+      window.prompt('Copia el enlace:', fullUrl);
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="section-title" style={{ fontSize: '1.6rem', margin: 0 }}>Guías</h2>
+      <p style={{ marginTop: 12, fontSize: '.85rem' }}>
+        Sube un archivo y obtén un enlace de descarga público, sin usuario ni contraseña, para
+        compartir donde quieras.
+      </p>
+
+      <form onSubmit={handleUpload} style={{ marginTop: 24, maxWidth: 420 }}>
+        <div>
+          <label htmlFor="g-title">Título</label>
+          <input
+            id="g-title"
+            type="text"
+            maxLength="150"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="g-file">Archivo</label>
+          <input
+            id="g-file"
+            name="g-file"
+            type="file"
+            accept=".pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp"
+          />
+        </div>
+        {error && <p style={{ color: 'var(--vino)' }}>{error}</p>}
+        <button type="submit" className="btn btn-primary" disabled={uploading}>
+          {uploading ? 'Subiendo…' : 'Subir Guía'}
+        </button>
+      </form>
+
+      {guides === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
+      {guides !== null && guides.length === 0 && (
+        <p style={{ marginTop: 32 }}>Todavía no has subido ninguna guía.</p>
+      )}
+
+      {guides !== null && guides.length > 0 && (
+        <div className="admin-post-list" style={{ marginTop: 32 }}>
+          {guides.map((g) => (
+            <div className="admin-post-row" key={g.id}>
+              <div>
+                <strong>{g.title}</strong>
+                <p style={{ margin: '4px 0 0', fontSize: '.85rem' }}>{g.url}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn-ghost" onClick={() => handleCopy(g)}>
+                  {copiedId === g.id ? '¡Copiado!' : 'Copiar Enlace'}
+                </button>
+                <a className="btn-ghost" href={g.url} target="_blank" rel="noreferrer">Abrir</a>
+                <button className="btn-ghost" style={{ color: 'var(--vino)' }} onClick={() => handleDelete(g.id, g.title)}>Eliminar</button>
               </div>
             </div>
           ))}
@@ -974,7 +1154,7 @@ function ChangeNameForm({ current, onDone, onChanged }) {
 }
 
 function Dashboard({ displayName, onDisplayNameChange }) {
-  const [section, setSection] = useState('blog'); // 'blog' | 'portfolio' | 'files'
+  const [section, setSection] = useState('blog'); // 'blog' | 'portfolio' | 'files' | 'guides'
   const [panel, setPanel] = useState(null); // null | 'password' | 'name'
 
   async function handleLogout() {
@@ -1028,12 +1208,20 @@ function Dashboard({ displayName, onDisplayNameChange }) {
         >
           Archivos
         </button>
+        <button
+          type="button"
+          className={`category-filter${section === 'guides' ? ' is-active' : ''}`}
+          onClick={() => setSection('guides')}
+        >
+          Guías
+        </button>
       </div>
 
       <div style={{ marginTop: 24 }}>
         {section === 'blog' && <BlogPanel displayName={displayName} />}
         {section === 'portfolio' && <PortfolioPanel />}
         {section === 'files' && <FilesPanel />}
+        {section === 'guides' && <GuidesPanel />}
       </div>
     </div>
   );

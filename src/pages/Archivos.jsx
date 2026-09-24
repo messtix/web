@@ -67,9 +67,22 @@ function LoginGate({ onLoggedIn }) {
   );
 }
 
+function folderPath(id, resources) {
+  const path = [];
+  let current = id;
+  while (current) {
+    const folder = resources.find((r) => r.id === current);
+    if (!folder) break;
+    path.unshift(folder);
+    current = folder.parent_id;
+  }
+  return path;
+}
+
 function ResourceList({ onLogout }) {
   const [resources, setResources] = useState(null);
   const [error, setError] = useState('');
+  const [currentFolderId, setCurrentFolderId] = useState(null);
 
   useEffect(() => {
     listResources()
@@ -81,6 +94,9 @@ function ResourceList({ onLogout }) {
     await participantLogout();
     onLogout();
   }
+
+  const items = (resources || []).filter((r) => (r.parent_id || null) === currentFolderId);
+  const breadcrumb = currentFolderId ? folderPath(currentFolderId, resources || []) : [];
 
   return (
     <div className="container" style={{ paddingTop: 60, paddingBottom: 90 }}>
@@ -95,32 +111,62 @@ function ResourceList({ onLogout }) {
         </button>
       </div>
 
-      {error && <p style={{ color: 'var(--vino-text)', marginTop: 24 }}>{error}</p>}
-      {!error && resources === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
-      {!error && resources !== null && resources.length === 0 && (
-        <p style={{ marginTop: 32 }}>Todavía no hay archivos disponibles.</p>
+      {resources !== null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 20, fontSize: '.9rem' }}>
+          <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(null)}>Raíz</button>
+          {breadcrumb.map((f) => (
+            <span key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>/</span>
+              <button type="button" className="btn-ghost" onClick={() => setCurrentFolderId(f.id)}>{f.title}</button>
+            </span>
+          ))}
+        </div>
       )}
 
-      {!error && resources !== null && resources.length > 0 && (
+      {error && <p style={{ color: 'var(--vino-text)', marginTop: 24 }}>{error}</p>}
+      {!error && resources === null && <p style={{ marginTop: 32 }}>Cargando…</p>}
+      {!error && resources !== null && items.length === 0 && (
+        <p style={{ marginTop: 32 }}>Esta carpeta todavía no tiene archivos.</p>
+      )}
+
+      {!error && resources !== null && items.length > 0 && (
         <div className="grid grid-3" style={{ marginTop: 40 }}>
-          {resources.map((r) => (
-            <a
-              key={r.id}
-              href={r.url}
-              target="_blank"
-              rel="noreferrer"
-              className="skill-card resource-card"
-            >
-              <span className="icon-badge icon-badge-outline">
-                <Icon name={TYPE_ICON[r.type] || 'link'} />
-              </span>
-              <span>
-                <strong style={{ display: 'block' }}>{r.title}</strong>
-                <span className="resource-type">{TYPE_LABEL[r.type] || 'Enlace'}</span>
-                {r.description && <span className="resource-desc">{r.description}</span>}
-              </span>
-            </a>
-          ))}
+          {items.map((r) =>
+            r.type === 'folder' ? (
+              <button
+                key={r.id}
+                type="button"
+                className="skill-card resource-card"
+                onClick={() => setCurrentFolderId(r.id)}
+              >
+                <span className="icon-badge icon-badge-outline">
+                  <Icon name="folder" />
+                </span>
+                <span>
+                  <strong style={{ display: 'block' }}>{r.title}</strong>
+                  <span className="resource-type">Carpeta</span>
+                  {r.description && <span className="resource-desc">{r.description}</span>}
+                </span>
+              </button>
+            ) : (
+              <a
+                key={r.id}
+                href={r.url}
+                target="_blank"
+                rel="noreferrer"
+                className="skill-card resource-card"
+              >
+                <span className="icon-badge icon-badge-outline">
+                  <Icon name={TYPE_ICON[r.type] || 'link'} />
+                </span>
+                <span>
+                  <strong style={{ display: 'block' }}>{r.title}</strong>
+                  <span className="resource-type">{TYPE_LABEL[r.type] || 'Enlace'}</span>
+                  {r.description && <span className="resource-desc">{r.description}</span>}
+                </span>
+              </a>
+            )
+          )}
         </div>
       )}
     </div>
