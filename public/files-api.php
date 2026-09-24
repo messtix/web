@@ -16,7 +16,7 @@ define('UPLOAD_DIR', __DIR__ . '/files/uploads');
 // Not stored in a data file, so there is nothing here that a fresh
 // static-file re-deploy could ever overwrite or lose.
 const PARTICIPANT_USERNAME = 'participante';
-const PARTICIPANT_PASSWORD_HASH = '$2y$12$/njCG3f5xyJ2ftlDv6migOBi/mf0cKP.ZvKM/boi8lfxf2wD7npAy';
+const PARTICIPANT_PASSWORD_HASH = '$2y$12$2Ye1o1Izz5Pu8dDzsZBo5uPKhcTQtVpTHY/d79l.87KbQBFMoSwxW';
 
 function fail($code, $error) {
     http_response_code($code);
